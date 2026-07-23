@@ -4,7 +4,7 @@ import { serveStatic } from './http/static.ts';
 import { renderDoc, GenStore } from './http/render.ts';
 import { handleApi } from './admin/routes.ts';
 import { WebSocketServer } from 'ws';
-import { openDb, listAccounts, getProblem, listCriteria, type Database } from './db/index.ts';
+import { openDb, listAccounts, getProblem, listProblems, listCriteria, type Database } from './db/index.ts';
 import { GameManager } from './game/GameManager.ts';
 import { Hub, type Conn } from './game/hub.ts';
 import { gradeRoom } from './grading/pipeline.ts';
@@ -75,6 +75,7 @@ export function attachWs(server: http.Server, opts: {
     accountExists: (u) => listAccounts(db).some(a => a.username === u),
     adminPassword: opts.adminPassword,
     onGradingStart,
+    listProblems: () => listProblems(db),
   });
 
   const wss = new WebSocketServer({ server });

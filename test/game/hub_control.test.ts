@@ -13,7 +13,7 @@ function setup() {
   const mgr = new GameManager({ now: () => t, getProblem: () => problem,
     scheduler: { setInterval: (fn) => (timers.add(fn), fn), clearInterval: (h) => timers.delete(h as any) } });
   const hub = new Hub(mgr, { accountExists: () => true, adminPassword: 'pw',
-    onGradingStart: () => {} });
+    onGradingStart: () => {}, listProblems: () => [problem] });
   const mk = (): Conn & { out: ServerMsg[] } => {
     const out: ServerMsg[] = [];
     return { out, send: (m) => out.push(m), role: null, roomCode: null, username: null };

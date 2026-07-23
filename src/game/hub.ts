@@ -1,5 +1,6 @@
 import type { GameManager } from './GameManager.ts';
 import type { ClientMsg, ServerMsg } from './types.ts';
+import { resolveSelection } from './select.ts';
 
 export interface Conn {
   send(msg: ServerMsg): void;
@@ -11,6 +12,7 @@ export type HubDeps = {
   accountExists(username: string): boolean;
   adminPassword: string;
   onGradingStart(roomCode: string): void; // Task 17 wires the grading pipeline
+  listProblems(): import('../db/index.ts').Problem[];
 };
 
 export class Hub {
@@ -70,12 +72,12 @@ export class Hub {
     }
     const code = conn.roomCode;
     if (msg.type === 'SELECT_PROBLEM') {
-      // 'direct' expects problemId; roulette/category resolved in Task 21.
-      const id = msg.problemId;
-      if (id == null) { conn.send({ type: 'ERROR', message: 'no problem id' }); return; }
-      const res = this.mgr.selectProblem(code, id);
+      const sel = resolveSelection(this.deps.listProblems(), msg.mode,
+        { problemId: msg.problemId, category: msg.category });
+      if ('error' in sel) { conn.send({ type: 'ERROR', message: sel.error }); return; }
+      const res = this.mgr.selectProblem(code, sel.problem.id);
       if (!res.ok) { conn.send({ type: 'ERROR', message: res.error! }); return; }
-      this.broadcast(code, { type: 'PROBLEM_SELECTED', problemId: id, timeLimitSec: res.timeLimitSec! });
+      this.broadcast(code, { type: 'PROBLEM_SELECTED', problemId: sel.problem.id, timeLimitSec: res.timeLimitSec! });
       return;
     }
     if (msg.type === 'START') {

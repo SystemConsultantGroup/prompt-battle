@@ -10,6 +10,7 @@ function setup() {
     accountExists: (u) => u === 'alice' || u === 'bob',
     adminPassword: 'pw',
     onGradingStart: () => {},
+    listProblems: () => [],
   });
   const mkConn = (): Conn & { out: ServerMsg[] } => {
     const out: ServerMsg[] = [];
