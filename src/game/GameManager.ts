@@ -87,6 +87,7 @@ export class GameManager {
   selectProblem(code: string, problemId: number) {
     const room = this.rooms.get(code);
     if (!room) return { ok: false, error: 'unknown room' };
+    if (room.phase !== 'LOBBY') return { ok: false, error: 'not in lobby' };
     const problem = this.deps.getProblem(problemId);
     if (!problem) return { ok: false, error: 'unknown problem' };
     room.problemId = problemId;
