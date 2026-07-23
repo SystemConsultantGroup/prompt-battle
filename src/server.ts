@@ -2,6 +2,7 @@ import http from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { serveStatic } from './http/static.ts';
 import { renderDoc, GenStore } from './http/render.ts';
+import { handleApi } from './admin/routes.ts';
 import { WebSocketServer } from 'ws';
 import { openDb, listAccounts, getProblem, listCriteria, type Database } from './db/index.ts';
 import { GameManager } from './game/GameManager.ts';
@@ -123,10 +124,21 @@ if (import.meta.url === `file://${process.argv[1]}` ||
   // `startServer` creates. Start the server with an indirection closure so
   // both share the same instances, then wire the real router in once ready.
   let router: ((req: http.IncomingMessage, res: http.ServerResponse) => boolean) | undefined;
-  const { server } = startServer({ port, onRequest: (req, res) => router?.(req, res) ?? false });
+  const adminPassword = process.env.ADMIN_PASSWORD ?? 'change-me';
+  const { server } = startServer({
+    port,
+    onRequest: (req, res) => {
+      if ((req.url ?? '').startsWith('/api/')) {
+        handleApi(db, adminPassword, req, res).catch(() =>
+          res.writeHead(500).end('err'));
+        return true;
+      }
+      return router?.(req, res) ?? false;
+    },
+  });
   const { db, genStore } = attachWs(server, {
     dbPath: 'data/app.sqlite',
-    adminPassword: process.env.ADMIN_PASSWORD ?? 'change-me',
+    adminPassword,
   });
   router = makeRouter(db, genStore);
 
