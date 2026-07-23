@@ -11,7 +11,10 @@ state.bus = bus;
 
 function onMsg(msg) {
   if (msg.type === 'ERROR') { alert(msg.message); return; }
-  if (msg.type === 'STATE') { state.phase = msg.room.phase; state.room = msg.room; }
+  if (msg.type === 'STATE') {
+    state.phase = msg.room.phase; state.room = msg.room;
+    state.problemId = msg.room.problemId; state.timeLimitSec = null;
+  }
   if (msg.type === 'PLAYER_JOINED') state.room.players.push({ username: msg.username });
   if (msg.type === 'PLAYER_LEFT') state.room.players = state.room.players.filter(p => p.username !== msg.username);
   if (msg.type === 'PROBLEM_SELECTED') {
