@@ -9,6 +9,7 @@ function setup() {
   const hub = new Hub(mgr, {
     accountExists: (u) => u === 'alice' || u === 'bob',
     adminPassword: 'pw',
+    onGradingStart: () => {},
   });
   const mkConn = (): Conn & { out: ServerMsg[] } => {
     const out: ServerMsg[] = [];

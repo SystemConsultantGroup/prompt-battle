@@ -31,6 +31,7 @@ export function attachWs(server: http.Server, opts: {
   const hub = new Hub(mgr, {
     accountExists: (u) => listAccounts(db).some(a => a.username === u),
     adminPassword: opts.adminPassword,
+    onGradingStart: () => {},
   });
   const wss = new WebSocketServer({ server });
   wss.on('connection', (ws) => {

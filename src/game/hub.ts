@@ -10,6 +10,7 @@ export interface Conn {
 export type HubDeps = {
   accountExists(username: string): boolean;
   adminPassword: string;
+  onGradingStart(roomCode: string): void; // Task 17 wires the grading pipeline
 };
 
 export class Hub {
@@ -56,7 +57,49 @@ export class Hub {
       this.broadcast(msg.roomCode, { type: 'PLAYER_JOINED', username: msg.username });
       return;
     }
-    // later tasks extend: PROMPT_UPDATE, SELECT_PROBLEM, START, FORCE_END, RESTART
+    if (conn.role === 'player' && msg.type === 'PROMPT_UPDATE') {
+      if (!conn.roomCode || !conn.username) return;
+      this.mgr.setPrompt(conn.roomCode, conn.username, msg.text);
+      this.broadcast(conn.roomCode,
+        { type: 'PROMPT_MIRROR', username: conn.username, text: msg.text },
+        { hostOnly: true });
+      return;
+    }
+    if (conn.role !== 'host' || !conn.roomCode) {
+      conn.send({ type: 'ERROR', message: 'not host' }); return;
+    }
+    const code = conn.roomCode;
+    if (msg.type === 'SELECT_PROBLEM') {
+      // 'direct' expects problemId; roulette/category resolved in Task 21.
+      const id = msg.problemId;
+      if (id == null) { conn.send({ type: 'ERROR', message: 'no problem id' }); return; }
+      const res = this.mgr.selectProblem(code, id);
+      if (!res.ok) { conn.send({ type: 'ERROR', message: res.error! }); return; }
+      this.broadcast(code, { type: 'PROBLEM_SELECTED', problemId: id, timeLimitSec: res.timeLimitSec! });
+      return;
+    }
+    if (msg.type === 'START') {
+      const room = this.mgr.getRoom(code);
+      const res = this.mgr.startGame(code,
+        (s) => this.broadcast(code, { type: 'TICK', remainingSec: s }),
+        () => { this.broadcast(code, { type: 'GAME_END' }); this.deps.onGradingStart(code); });
+      if (!res.ok) { conn.send({ type: 'ERROR', message: res.error! }); return; }
+      this.broadcast(code, { type: 'GAME_START', problemId: room!.problemId!, deadline: res.deadline! });
+      return;
+    }
+    if (msg.type === 'FORCE_END') {
+      this.mgr.forceEnd(code);
+      this.broadcast(code, { type: 'GAME_END' });
+      this.deps.onGradingStart(code);
+      return;
+    }
+    if (msg.type === 'RESTART') {
+      this.mgr.restart(code);
+      this.broadcast(code, { type: 'STATE', room: this.mgr.summary(code), role: 'host' });
+      // players also need fresh STATE:
+      this.broadcast(code, { type: 'STATE', room: this.mgr.summary(code), role: 'player' });
+      return;
+    }
     conn.send({ type: 'ERROR', message: `unhandled: ${msg.type}` });
   }
 }
