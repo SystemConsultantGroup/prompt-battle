@@ -17,12 +17,19 @@ function onMsg(msg) {
   if (msg.type === 'RESULT') { state.phase = 'RESULT'; state.ranking = msg.ranking; }
   render();
 }
+let currentScreen = null;
 function render() {
-  if (state.phase === 'JOIN') return renderJoin();
-  if (state.phase === 'LOBBY') return renderLobby();
-  if (state.phase === 'PLAYING') return renderEditor();
-  if (state.phase === 'GRADING') return renderGrading();
-  if (state.phase === 'RESULT') return renderResult();
+  const target = state.phase;
+  if (target === 'PLAYING' && currentScreen === 'PLAYING') {
+    updateEditor();
+    return;
+  }
+  currentScreen = target;
+  if (target === 'JOIN') return renderJoin();
+  if (target === 'LOBBY') return renderLobby();
+  if (target === 'PLAYING') return renderEditor();
+  if (target === 'GRADING') return renderGrading();
+  if (target === 'RESULT') return renderResult();
 }
 function renderJoin() {
   const code = el('input', { placeholder: 'Room code' });
@@ -41,6 +48,8 @@ function renderLobby() {
     el('ul', {}, ...state.players.map(p => el('li', {}, p.username)))));
 }
 let debounce;
+let editorTimerEl = null;
+let editorTextareaEl = null;
 function renderEditor() {
   const frame = el('iframe', { class: 'target', src: `/render/target/${state.problemId}`, sandbox: 'allow-scripts' });
   const ta = el('textarea', { class: 'prompt', placeholder: 'Describe the UI to build…' });
@@ -50,9 +59,17 @@ function renderEditor() {
     debounce = setTimeout(() => bus.send({ type: 'PROMPT_UPDATE', text: ta.value }), 300);
   });
   const timer = el('div', { class: 'timer' }, state.remaining == null ? '…' : `${state.remaining}s`);
+  editorTimerEl = timer;
+  editorTextareaEl = ta;
   mount(app, el('div', { class: 'play' },
     el('div', { class: 'goal' }, el('h3', {}, 'Goal'), frame),
     el('div', { class: 'work' }, timer, ta)));
+}
+// PLAYING is already mounted (e.g. TICK/GAME_END arrived) — patch only the
+// mutable bits in place so the textarea/iframe are never destroyed.
+function updateEditor() {
+  if (editorTimerEl) editorTimerEl.textContent = state.remaining == null ? '…' : `${state.remaining}s`;
+  if (editorTextareaEl) editorTextareaEl.disabled = !!state.locked;
 }
 function renderGrading() {
   const p = state.progress;
