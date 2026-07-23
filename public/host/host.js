@@ -1,6 +1,7 @@
 import { connect } from '/shared/ws.js';
 import { el, mount } from '/shared/dom.js';
 import { renderDashboard } from '/host/dashboard.js';
+import { renderResults } from '/host/results.js';
 
 const app = document.getElementById('app');
 let state = { phase: 'AUTH', room: null, mirror: {}, remaining: null, progress: null, ranking: null };
@@ -37,11 +38,8 @@ function renderLobby() {
     el('ul', {}, ...(state.room?.players ?? []).map(p => el('li', {}, p.username)))));
 }
 
-function renderResults() {
-  // Placeholder for Task 18
-  return mount(app, el('div', { class: 'card' },
-    el('h2', {}, 'Results'),
-    el('p', {}, 'Results screen')));
+function handleResults() {
+  return renderResults(app, state);
 }
 
 function render() {
@@ -49,7 +47,7 @@ function render() {
   if (state.phase === 'PLAYING') return renderDashboard(app, state);
   if (state.phase === 'GRADING') return mount(app, el('div', { class: 'card' },
     el('h2', {}, 'Grading…'), el('p', {}, state.progress ? `${state.progress.done}/${state.progress.total}` : '')));
-  if (state.phase === 'RESULT') return renderResults();
+  if (state.phase === 'RESULT') return handleResults();
   return renderLobby();
 }
 

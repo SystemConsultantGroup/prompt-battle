@@ -15,3 +15,12 @@ li { padding: 8px; background: #232945; border-radius: 6px; margin: 4px 0; }
 .pcard { background: #1a1f36; border-radius: 8px; padding: 12px; }
 .pname { font-weight: 700; margin-bottom: 6px; }
 .ptext { white-space: pre-wrap; word-break: break-word; font-size: 13px; color: #b9c0e0; max-height: 160px; overflow: auto; }
+.results-wrap { max-width: 720px; margin: 4vh auto; }
+.result { background: #1a1f36; border-radius: 10px; padding: 16px; margin: 10px 0; }
+.rhead { display: flex; gap: 12px; align-items: baseline; font-size: 18px; }
+.rank { font-weight: 800; color: #5b7cfa; }
+.rtotal { margin-left: auto; font-weight: 800; }
+.rsub { color: #9aa2c8; font-size: 13px; margin: 6px 0; }
+.ritems { font-size: 13px; }
+.ritems li.ok { color: #7ee0a0; }
+.ritems li.no { color: #e08a8a; }
