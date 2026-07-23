@@ -54,11 +54,11 @@ export function attachWs(server: http.Server, opts: {
       if (!problem) throw new Error(`problem ${room.problemId} not found for room ${code}`);
       const criteria = listCriteria(db, problem.id);
       const subs = [...room.players.values()].map(p => ({ username: p.username, prompt: p.prompt }));
-      genStore.clear();
+      genStore.clearRoom(code);
       const results = await gradeRoom({
         provider, problem, criteria, submissions: subs,
         onProgress: (done, total) => hub.broadcast(code, { type: 'GRADING_PROGRESS', done, total }),
-        storeCode: (genCode) => genStore.put(genCode),
+        storeCode: (genCode) => genStore.put(genCode, code),
       });
       mgr.setPhase(code, 'RESULT');
       hub.broadcast(code, { type: 'RESULT', ranking: results });

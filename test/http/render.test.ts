@@ -28,3 +28,16 @@ test('GenStore stores and retrieves by token', () => {
   assert.equal(s.get(t)?.html, 'a');
   assert.equal(s.get('nope'), undefined);
 });
+
+test('GenStore.clearRoom only wipes that room\'s tokens, leaving others intact', () => {
+  const s = new GenStore();
+  const a1 = s.put({ html: 'a1', css: '', js: '' }, 'A');
+  const a2 = s.put({ html: 'a2', css: '', js: '' }, 'A');
+  const b1 = s.put({ html: 'b1', css: '', js: '' }, 'B');
+
+  s.clearRoom('A');
+
+  assert.equal(s.get(a1), undefined);
+  assert.equal(s.get(a2), undefined);
+  assert.equal(s.get(b1)?.html, 'b1');
+});

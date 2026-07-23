@@ -21,11 +21,29 @@ export function renderDoc(code: GeneratedCode): string {
 let counter = 0;
 export class GenStore {
   private map = new Map<string, GeneratedCode>();
-  put(code: GeneratedCode): string {
+  private roomTokens = new Map<string, Set<string>>();
+  put(code: GeneratedCode, roomCode?: string): string {
     const token = `g${(counter++).toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`;
     this.map.set(token, code);
+    if (roomCode !== undefined) {
+      let tokens = this.roomTokens.get(roomCode);
+      if (!tokens) {
+        tokens = new Set();
+        this.roomTokens.set(roomCode, tokens);
+      }
+      tokens.add(token);
+    }
     return token;
   }
   get(token: string): GeneratedCode | undefined { return this.map.get(token); }
-  clear() { this.map.clear(); }
+  clearRoom(roomCode: string) {
+    const tokens = this.roomTokens.get(roomCode);
+    if (!tokens) return;
+    for (const token of tokens) this.map.delete(token);
+    this.roomTokens.delete(roomCode);
+  }
+  clear() {
+    this.map.clear();
+    this.roomTokens.clear();
+  }
 }
