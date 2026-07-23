@@ -14,7 +14,7 @@ export const IMPLEMENT_SYSTEM_PROMPT = [
 export function wrapUserPrompt(raw: string): string {
   const cleaned = raw
     .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')  // strip control chars except \t \n \r
-    .replace(/<\/?user_prompt>/gi, '[tag]')          // neutralize injected delimiter tags
+    .replace(/<\s*\/?\s*user_prompt\b[^>]*>/gi, '[tag]') // neutralize injected delimiter tags
     .slice(0, 4000);                                 // cap length
   return `<user_prompt>\n${cleaned}\n</user_prompt>`;
 }
