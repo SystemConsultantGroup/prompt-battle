@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.local
+data/
+*.sqlite
+*.sqlite-journal
+*.db
+dist/
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+npm-debug.log*
