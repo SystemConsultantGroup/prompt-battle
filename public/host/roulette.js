@@ -16,6 +16,7 @@ export function spinReel(container, pool, winnerId, onDone) {
   mount(container, strip);
   // target: a winner card near the end of the strip
   const target = cards.find(c => c.id === winnerId && c.rep === REPEAT - 2);
+  if (!target) { onDone?.(); return; }
   const cardW = 180; // must match CSS width + gap
   const targetX = target.el.offsetLeft - (container.clientWidth / 2 - cardW / 2);
   const start = performance.now();
