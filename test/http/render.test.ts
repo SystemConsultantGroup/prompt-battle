@@ -10,9 +10,16 @@ test('renderDoc inlines code and sets a locked-down CSP', () => {
   assert.match(html, /default-src 'none'/);
 });
 
-test('renderDoc neutralizes closing script tags in js', () => {
-  const html = renderDoc({ html: '', css: '', js: 'x = "</script>"' });
-  assert.ok(!html.includes('</script><'));
+test('renderDoc neutralizes all HTML5-recognized script/style end-tag forms', () => {
+  const doc = renderDoc({ html: '', css: 'body{}</style ><style>x', js: 'a</script >b</script>' });
+  // Only the wrapper's own real closers should remain recognizable by the
+  // HTML tokenizer (end tag = "</script" or "</style" followed by
+  // whitespace, "/", or ">").
+  assert.equal(doc.match(/<\/script[\s/>]/gi)?.length, 1);
+  assert.equal(doc.match(/<\/style[\s/>]/gi)?.length, 1);
+  // The user-injected closers must have been backslash-neutralized.
+  assert.ok(doc.includes('<\\/script'));
+  assert.ok(doc.includes('<\\/style'));
 });
 
 test('GenStore stores and retrieves by token', () => {
