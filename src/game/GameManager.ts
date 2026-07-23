@@ -68,6 +68,7 @@ export class GameManager {
     const remainingSec = room.deadline == null ? null
       : Math.max(0, Math.ceil((room.deadline - this.deps.now()) / 1000));
     return {
+      code: room.code,
       phase: room.phase,
       players: [...room.players.values()].map(p => ({ username: p.username })),
       maxPlayers: room.maxPlayers,

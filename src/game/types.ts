@@ -14,6 +14,7 @@ export type PlayerResult = {
 export type PlayerView = { username: string };
 
 export type RoomSummary = {
+  code: string;
   phase: Phase;
   players: PlayerView[];
   maxPlayers: number;

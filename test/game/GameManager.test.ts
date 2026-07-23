@@ -13,6 +13,7 @@ test('createRoom returns a code and starts in LOBBY', () => {
   const code = m.createRoom({ maxPlayers: 4 });
   assert.equal(typeof code, 'string');
   assert.equal(m.summary(code).phase, 'LOBBY');
+  assert.equal(m.summary(code).code, code);
 });
 
 test('joinPlayer enforces existence, capacity, duplicates', () => {
