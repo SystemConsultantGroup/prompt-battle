@@ -46,18 +46,28 @@ export function attachWs(server: http.Server, opts: {
 
   let hub: Hub;
   const onGradingStart = async (code: string) => {
-    const room = mgr.getRoom(code);
-    if (!room || room.problemId == null) return;
-    const problem = getProblem(db, room.problemId)!;
-    const criteria = listCriteria(db, problem.id);
-    const subs = [...room.players.values()].map(p => ({ username: p.username, prompt: p.prompt }));
-    genStore.clear();
-    const results = await gradeRoom({
-      provider, problem, criteria, submissions: subs,
-      onProgress: (done, total) => hub.broadcast(code, { type: 'GRADING_PROGRESS', done, total }),
-    });
-    mgr.setPhase(code, 'RESULT');
-    hub.broadcast(code, { type: 'RESULT', ranking: results });
+    try {
+      const room = mgr.getRoom(code);
+      if (!room || room.problemId == null) return;
+      const problem = getProblem(db, room.problemId);
+      if (!problem) throw new Error(`problem ${room.problemId} not found for room ${code}`);
+      const criteria = listCriteria(db, problem.id);
+      const subs = [...room.players.values()].map(p => ({ username: p.username, prompt: p.prompt }));
+      genStore.clear();
+      const results = await gradeRoom({
+        provider, problem, criteria, submissions: subs,
+        onProgress: (done, total) => hub.broadcast(code, { type: 'GRADING_PROGRESS', done, total }),
+      });
+      mgr.setPhase(code, 'RESULT');
+      hub.broadcast(code, { type: 'RESULT', ranking: results });
+    } catch (err) {
+      // Grading must never leave an unhandled rejection: this hook is invoked
+      // fire-and-forget from Hub (see src/game/hub.ts), so any throw here
+      // would crash the whole process. Log and unstick the room instead.
+      console.error('[grading] failed for room', code, err);
+      mgr.setPhase(code, 'RESULT');
+      hub.broadcast(code, { type: 'RESULT', ranking: [] });
+    }
   };
 
   hub = new Hub(mgr, {
