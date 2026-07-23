@@ -28,10 +28,11 @@ export class Hub {
     }
   }
 
-  broadcast(roomCode: string, msg: ServerMsg, opts: { hostOnly?: boolean } = {}) {
+  broadcast(roomCode: string, msg: ServerMsg, opts: { hostOnly?: boolean; except?: Conn } = {}) {
     for (const c of this.conns) {
       if (c.roomCode !== roomCode) continue;
       if (opts.hostOnly && c.role !== 'host') continue;
+      if (opts.except && c === opts.except) continue;
       c.send(msg);
     }
   }
@@ -56,11 +57,13 @@ export class Hub {
       if (!res.ok) { conn.send({ type: 'ERROR', message: res.error! }); return; }
       conn.role = 'player'; conn.roomCode = msg.roomCode; conn.username = msg.username;
       conn.send({ type: 'STATE', room: this.mgr.summary(msg.roomCode), role: 'player' });
-      this.broadcast(msg.roomCode, { type: 'PLAYER_JOINED', username: msg.username });
+      this.broadcast(msg.roomCode, { type: 'PLAYER_JOINED', username: msg.username }, { except: conn });
       return;
     }
     if (conn.role === 'player' && msg.type === 'PROMPT_UPDATE') {
       if (!conn.roomCode || !conn.username) return;
+      const room = this.mgr.getRoom(conn.roomCode);
+      if (!room || room.phase !== 'PLAYING') return;
       this.mgr.setPrompt(conn.roomCode, conn.username, msg.text);
       this.broadcast(conn.roomCode,
         { type: 'PROMPT_MIRROR', username: conn.username, text: msg.text },

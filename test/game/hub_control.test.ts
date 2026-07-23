@@ -28,10 +28,25 @@ test('prompt update mirrors to host only', () => {
   const code = host.roomCode!;
   const player = mk(); hub.register(player);
   hub.handle(player, JSON.stringify({ type: 'JOIN', roomCode: code, username: 'alice' }));
+  hub.handle(host, JSON.stringify({ type: 'SELECT_PROBLEM', mode: 'direct', problemId: 1 }));
+  hub.handle(host, JSON.stringify({ type: 'START' }));
   host.out.length = 0; player.out.length = 0;
   hub.handle(player, JSON.stringify({ type: 'PROMPT_UPDATE', text: 'hi' }));
   assert.ok(host.out.some(m => m.type === 'PROMPT_MIRROR' && m.text === 'hi'));
   assert.ok(!player.out.some(m => m.type === 'PROMPT_MIRROR'));
+});
+
+test('prompt update is ignored outside PLAYING (post-deadline / lobby lock)', () => {
+  const { hub, mk } = setup();
+  const host = mk(); hub.register(host);
+  hub.handle(host, JSON.stringify({ type: 'HOST_AUTH', adminPassword: 'pw' }));
+  const code = host.roomCode!;
+  const player = mk(); hub.register(player);
+  hub.handle(player, JSON.stringify({ type: 'JOIN', roomCode: code, username: 'alice' }));
+  host.out.length = 0; player.out.length = 0;
+  // room is still LOBBY: no SELECT_PROBLEM/START yet
+  hub.handle(player, JSON.stringify({ type: 'PROMPT_UPDATE', text: 'sneaky' }));
+  assert.ok(!host.out.some(m => m.type === 'PROMPT_MIRROR'));
 });
 
 test('select + start broadcasts GAME_START', () => {

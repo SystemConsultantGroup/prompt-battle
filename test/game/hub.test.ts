@@ -49,3 +49,22 @@ test('player join broadcasts PLAYER_JOINED to host', () => {
   assert.equal(player.role, 'player');
   assert.ok(host.out.some(m => m.type === 'PLAYER_JOINED' && m.username === 'alice'));
 });
+
+test('joining player does not receive their own PLAYER_JOINED broadcast', () => {
+  const { hub, mkConn } = setup();
+  const host = mkConn();
+  hub.register(host);
+  hub.handle(host, JSON.stringify({ type: 'HOST_AUTH', adminPassword: 'pw' }));
+  const code = host.roomCode!;
+  const alice = mkConn();
+  hub.register(alice);
+  hub.handle(alice, JSON.stringify({ type: 'JOIN', roomCode: code, username: 'alice' }));
+  assert.ok(!alice.out.some(m => m.type === 'PLAYER_JOINED'));
+  // but a second joiner still sees it, and so does alice
+  alice.out.length = 0;
+  const bob = mkConn();
+  hub.register(bob);
+  hub.handle(bob, JSON.stringify({ type: 'JOIN', roomCode: code, username: 'bob' }));
+  assert.ok(alice.out.some(m => m.type === 'PLAYER_JOINED' && m.username === 'bob'));
+  assert.ok(!bob.out.some(m => m.type === 'PLAYER_JOINED'));
+});
