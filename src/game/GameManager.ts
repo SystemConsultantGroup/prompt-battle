@@ -2,6 +2,10 @@ import type { Phase, RoomSummary } from './types.ts';
 import type { Problem } from '../db/index.ts';
 
 export type PlayerState = { username: string; prompt: string };
+export type Scheduler = {
+  setInterval(fn: () => void, ms: number): unknown;
+  clearInterval(handle: unknown): void;
+};
 export type Room = {
   code: string;
   phase: Phase;
@@ -9,10 +13,12 @@ export type Room = {
   players: Map<string, PlayerState>;
   problemId: number | null;
   deadline: number | null;
+  timer: unknown | null;
 };
 export type GameDeps = {
   now(): number;
   getProblem(id: number): Problem | undefined;
+  scheduler?: Scheduler;
 };
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -36,7 +42,7 @@ export class GameManager {
     while (this.rooms.has(code)) code = this.codeFactory();
     this.rooms.set(code, {
       code, phase: 'LOBBY', maxPlayers: opts.maxPlayers,
-      players: new Map(), problemId: null, deadline: null,
+      players: new Map(), problemId: null, deadline: null, timer: null,
     });
     return code;
   }
@@ -68,5 +74,56 @@ export class GameManager {
       remainingSec,
       problemId: room.problemId,
     };
+  }
+
+  private sched(): Scheduler {
+    return this.deps.scheduler ?? { setInterval, clearInterval };
+  }
+  setPrompt(code: string, username: string, text: string) {
+    const p = this.rooms.get(code)?.players.get(username);
+    if (p) p.prompt = text;
+  }
+  selectProblem(code: string, problemId: number) {
+    const room = this.rooms.get(code);
+    if (!room) return { ok: false, error: 'unknown room' };
+    const problem = this.deps.getProblem(problemId);
+    if (!problem) return { ok: false, error: 'unknown problem' };
+    room.problemId = problemId;
+    return { ok: true, timeLimitSec: problem.timeLimitSec };
+  }
+  startGame(code: string, onTick: (s: number) => void, onEnd: () => void) {
+    const room = this.rooms.get(code);
+    if (!room) return { ok: false, error: 'unknown room' };
+    if (room.problemId == null) return { ok: false, error: 'no problem' };
+    if (room.phase !== 'LOBBY') return { ok: false, error: 'not in lobby' };
+    const problem = this.deps.getProblem(room.problemId)!;
+    room.phase = 'PLAYING';
+    room.deadline = this.deps.now() + problem.timeLimitSec * 1000;
+    room.timer = this.sched().setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((room.deadline! - this.deps.now()) / 1000));
+      onTick(remaining);
+      if (this.deps.now() >= room.deadline!) { this.endGame(code); onEnd(); }
+    }, 1000);
+    return { ok: true, deadline: room.deadline };
+  }
+  private endGame(code: string) {
+    const room = this.rooms.get(code);
+    if (!room) return;
+    if (room.timer) { this.sched().clearInterval(room.timer); room.timer = null; }
+    room.phase = 'GRADING';
+  }
+  forceEnd(code: string) {
+    const room = this.rooms.get(code);
+    if (room && room.phase === 'PLAYING') this.endGame(code);
+  }
+  setPhase(code: string, phase: Phase) {
+    const room = this.rooms.get(code); if (room) room.phase = phase;
+  }
+  restart(code: string) {
+    const room = this.rooms.get(code);
+    if (!room) return;
+    if (room.timer) { this.sched().clearInterval(room.timer); room.timer = null; }
+    room.phase = 'LOBBY'; room.problemId = null; room.deadline = null;
+    for (const p of room.players.values()) p.prompt = '';
   }
 }
