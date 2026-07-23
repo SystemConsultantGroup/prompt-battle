@@ -33,6 +33,19 @@ test('create and list accounts', async () => {
   assert.match(r.res.body, /alice/);
 });
 
+test('rejects empty/missing username on account creation', async () => {
+  const db = openDb(':memory:');
+  let r = mockReqRes('POST', '/api/accounts', { username: '' });
+  await handleApi(db, 'pw', r.req, r.res);
+  assert.equal(r.res.code, 400);
+  r = mockReqRes('POST', '/api/accounts', {});
+  await handleApi(db, 'pw', r.req, r.res);
+  assert.equal(r.res.code, 400);
+  r = mockReqRes('GET', '/api/accounts');
+  await handleApi(db, 'pw', r.req, r.res);
+  assert.doesNotMatch(r.res.body, /undefined/);
+});
+
 test('create problem with criteria and read back', async () => {
   const db = openDb(':memory:');
   let r = mockReqRes('POST', '/api/problems', {

@@ -24,7 +24,10 @@ export async function handleApi(
   if (url === '/api/accounts' && method === 'GET') { json(res, 200, listAccounts(db)); return true; }
   if (url === '/api/accounts' && method === 'POST') {
     const b = await readBody(req);
-    try { json(res, 200, createAccount(db, String(b.username))); }
+    if (typeof b.username !== 'string' || b.username.trim() === '') {
+      json(res, 400, { error: 'username required' }); return true;
+    }
+    try { json(res, 200, createAccount(db, b.username)); }
     catch { json(res, 400, { error: 'duplicate or invalid' }); }
     return true;
   }
