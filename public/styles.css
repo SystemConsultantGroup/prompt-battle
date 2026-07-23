@@ -10,3 +10,8 @@ li { padding: 8px; background: #232945; border-radius: 6px; margin: 4px 0; }
 .target { flex: 1; border: 0; border-radius: 8px; background: white; }
 .prompt { flex: 1; resize: none; font-size: 15px; padding: 12px; border-radius: 8px; border: 0; }
 .timer { font-size: 28px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+.dash { padding: 16px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.pcard { background: #1a1f36; border-radius: 8px; padding: 12px; }
+.pname { font-weight: 700; margin-bottom: 6px; }
+.ptext { white-space: pre-wrap; word-break: break-word; font-size: 13px; color: #b9c0e0; max-height: 160px; overflow: auto; }
