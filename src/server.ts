@@ -58,6 +58,7 @@ export function attachWs(server: http.Server, opts: {
       const results = await gradeRoom({
         provider, problem, criteria, submissions: subs,
         onProgress: (done, total) => hub.broadcast(code, { type: 'GRADING_PROGRESS', done, total }),
+        storeCode: (genCode) => genStore.put(genCode),
       });
       mgr.setPhase(code, 'RESULT');
       hub.broadcast(code, { type: 'RESULT', ranking: results });

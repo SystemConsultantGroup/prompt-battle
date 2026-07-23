@@ -9,7 +9,7 @@ export type ResultItem = {
 };
 export type PlayerResult = {
   username: string; total: number; basicScore: number; detailScore: number;
-  items: ResultItem[];
+  items: ResultItem[]; genToken?: string;
 };
 export type PlayerView = { username: string };
 

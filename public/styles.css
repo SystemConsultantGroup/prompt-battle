@@ -24,6 +24,7 @@ li { padding: 8px; background: #232945; border-radius: 6px; margin: 4px 0; }
 .ritems { font-size: 13px; }
 .ritems li.ok { color: #7ee0a0; }
 .ritems li.no { color: #e08a8a; }
+.result-frame { width: 100%; height: 220px; border: 0; border-radius: 8px; background: white; margin-top: 10px; }
 .card.wide { max-width: 900px; }
 .modes { display: flex; gap: 8px; }
 .modes button { width: auto; }
