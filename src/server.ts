@@ -3,9 +3,13 @@ import { fileURLToPath } from 'node:url';
 import { serveStatic } from './http/static.ts';
 import { renderDoc, GenStore } from './http/render.ts';
 import { WebSocketServer } from 'ws';
-import { openDb, listAccounts, getProblem, type Database } from './db/index.ts';
+import { openDb, listAccounts, getProblem, listCriteria, type Database } from './db/index.ts';
 import { GameManager } from './game/GameManager.ts';
 import { Hub, type Conn } from './game/hub.ts';
+import { gradeRoom } from './grading/pipeline.ts';
+import { ClaudeProvider } from './llm/claude.ts';
+import { FakeProvider } from './llm/fake.ts';
+import type { LLMProvider } from './llm/provider.ts';
 
 const PUBLIC_ROOT = fileURLToPath(new URL('../public', import.meta.url));
 
@@ -30,15 +34,38 @@ export function attachWs(server: http.Server, opts: {
 }) {
   const db = openDb(opts.dbPath);
   const genStore = new GenStore();
+  const provider: LLMProvider = process.env.ANTHROPIC_API_KEY
+    ? new ClaudeProvider({ apiKey: process.env.ANTHROPIC_API_KEY,
+        model: process.env.CLAUDE_MODEL ?? 'claude-opus-4-8' })
+    : (console.warn('No ANTHROPIC_API_KEY — using FakeProvider'), new FakeProvider());
+
   const mgr = new GameManager({
     now: () => Date.now(),
     getProblem: (id) => getProblem(db, id),
   });
-  const hub = new Hub(mgr, {
+
+  let hub: Hub;
+  const onGradingStart = async (code: string) => {
+    const room = mgr.getRoom(code);
+    if (!room || room.problemId == null) return;
+    const problem = getProblem(db, room.problemId)!;
+    const criteria = listCriteria(db, problem.id);
+    const subs = [...room.players.values()].map(p => ({ username: p.username, prompt: p.prompt }));
+    genStore.clear();
+    const results = await gradeRoom({
+      provider, problem, criteria, submissions: subs,
+      onProgress: (done, total) => hub.broadcast(code, { type: 'GRADING_PROGRESS', done, total }),
+    });
+    mgr.setPhase(code, 'RESULT');
+    hub.broadcast(code, { type: 'RESULT', ranking: results });
+  };
+
+  hub = new Hub(mgr, {
     accountExists: (u) => listAccounts(db).some(a => a.username === u),
     adminPassword: opts.adminPassword,
-    onGradingStart: () => {},
+    onGradingStart,
   });
+
   const wss = new WebSocketServer({ server });
   wss.on('connection', (ws) => {
     const conn: Conn = {
