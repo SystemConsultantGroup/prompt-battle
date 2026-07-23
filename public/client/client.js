@@ -10,11 +10,19 @@ function onMsg(msg) {
   if (msg.type === 'STATE') { state.phase = msg.room.phase; state.players = msg.room.players; }
   if (msg.type === 'PLAYER_JOINED') state.players.push({ username: msg.username });
   if (msg.type === 'PLAYER_LEFT') state.players = state.players.filter(p => p.username !== msg.username);
+  if (msg.type === 'GAME_START') { state.phase = 'PLAYING'; state.problemId = msg.problemId; state.remaining = null; state.locked = false; }
+  if (msg.type === 'TICK') state.remaining = msg.remainingSec;
+  if (msg.type === 'GAME_END') { state.locked = true; }
+  if (msg.type === 'GRADING_PROGRESS') { state.phase = 'GRADING'; state.progress = msg; }
+  if (msg.type === 'RESULT') { state.phase = 'RESULT'; state.ranking = msg.ranking; }
   render();
 }
 function render() {
   if (state.phase === 'JOIN') return renderJoin();
-  return renderLobby();
+  if (state.phase === 'LOBBY') return renderLobby();
+  if (state.phase === 'PLAYING') return renderEditor();
+  if (state.phase === 'GRADING') return renderGrading();
+  if (state.phase === 'RESULT') return renderResult();
 }
 function renderJoin() {
   const code = el('input', { placeholder: 'Room code' });
@@ -31,5 +39,29 @@ function renderLobby() {
   mount(app, el('div', { class: 'card' },
     el('h2', {}, 'Waiting for host…'),
     el('ul', {}, ...state.players.map(p => el('li', {}, p.username)))));
+}
+let debounce;
+function renderEditor() {
+  const frame = el('iframe', { class: 'target', src: `/render/target/${state.problemId}`, sandbox: 'allow-scripts' });
+  const ta = el('textarea', { class: 'prompt', placeholder: 'Describe the UI to build…' });
+  ta.disabled = !!state.locked;
+  ta.addEventListener('input', () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => bus.send({ type: 'PROMPT_UPDATE', text: ta.value }), 300);
+  });
+  const timer = el('div', { class: 'timer' }, state.remaining == null ? '…' : `${state.remaining}s`);
+  mount(app, el('div', { class: 'play' },
+    el('div', { class: 'goal' }, el('h3', {}, 'Goal'), frame),
+    el('div', { class: 'work' }, timer, ta)));
+}
+function renderGrading() {
+  const p = state.progress;
+  mount(app, el('div', { class: 'card' }, el('h2', {}, 'Grading…'),
+    el('p', {}, p ? `${p.done}/${p.total}` : '')));
+}
+function renderResult() {
+  mount(app, el('div', { class: 'card' }, el('h2', {}, 'Results'),
+    el('ol', {}, ...(state.ranking ?? []).map(r =>
+      el('li', {}, `${r.username} — ${Math.round(r.total * 100)}%`)))));
 }
 render();
