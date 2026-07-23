@@ -1,0 +1,7 @@
+* { box-sizing: border-box; }
+body { font-family: system-ui, sans-serif; margin: 0; background: #0f1220; color: #e8e8f0; }
+.card { max-width: 480px; margin: 8vh auto; padding: 24px; background: #1a1f36; border-radius: 12px; }
+input, button { display: block; width: 100%; margin: 8px 0; padding: 12px; border-radius: 8px; border: 0; font-size: 16px; }
+button { background: #5b7cfa; color: white; cursor: pointer; }
+ul { list-style: none; padding: 0; }
+li { padding: 8px; background: #232945; border-radius: 6px; margin: 4px 0; }
