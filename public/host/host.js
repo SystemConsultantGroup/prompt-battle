@@ -30,11 +30,18 @@ function onOpen() {
 
 function onMsg(msg) {
   if (msg.type === 'ERROR') {
-    // The only ERROR a host connection can get while unauthenticated is a
-    // bad admin password (a stale/expired reclaim just falls back to a
-    // fresh room server-side). Drop the stored session so we don't keep
-    // retrying it on every reconnect.
-    if (state.phase === 'AUTH') clearStoredHost();
+    // A bad admin password can arrive at any phase, not just AUTH: a mid-game
+    // socket drop→reopen auto-sends HOST_AUTH via onOpen, and if the stored
+    // password is stale/wrong the server rejects it while phase is still
+    // PLAYING/GRADING/etc. Detect the failure by message (server sends this
+    // exact string), not by current phase, so the stored session always
+    // gets cleared and the host lands back on the password screen instead
+    // of freezing on stale data and retrying forever.
+    if (msg.message === 'bad admin password') {
+      clearStoredHost();
+      state.phase = 'AUTH';
+      render();
+    }
     alert(msg.message);
     return;
   }
@@ -48,6 +55,11 @@ function onMsg(msg) {
   if (msg.type === 'STATE') {
     state.phase = msg.room.phase; state.room = msg.room;
     state.problemId = msg.room.problemId; state.timeLimitSec = null;
+    // Restore the countdown immediately on reclaim so the dashboard timer
+    // isn't blank until the next TICK arrives (which then corrects skew).
+    state.remaining = (msg.room.deadline != null && msg.room.phase === 'PLAYING')
+      ? Math.max(0, Math.ceil((msg.room.deadline - Date.now()) / 1000))
+      : state.remaining;
     if (msg.role === 'host') {
       try { sessionStorage.setItem(HOST_KEY, JSON.stringify({ pw: state.pw, roomCode: msg.room.code })); } catch { /* ignore */ }
     }

@@ -46,6 +46,9 @@ function onMsg(msg) {
     state.phase = room.phase;
     state.players = room.players;
     state.problemId = room.problemId;
+    // A lobby means no active prompt — mirror the server's per-round reset
+    // so stale text from a prior round can't bleed into the next editor.
+    if (room.phase === 'LOBBY') state.promptText = '';
     state.promptText = msg.yourPrompt ?? state.promptText ?? '';
     state.remaining = room.deadline != null
       ? Math.max(0, Math.ceil((room.deadline - Date.now()) / 1000))
@@ -58,7 +61,7 @@ function onMsg(msg) {
   }
   if (msg.type === 'PLAYER_JOINED') state.players.push({ username: msg.username });
   if (msg.type === 'PLAYER_LEFT') state.players = state.players.filter(p => p.username !== msg.username);
-  if (msg.type === 'GAME_START') { state.phase = 'PLAYING'; state.problemId = msg.problemId; state.remaining = null; state.locked = false; }
+  if (msg.type === 'GAME_START') { state.phase = 'PLAYING'; state.problemId = msg.problemId; state.promptText = ''; state.remaining = null; state.locked = false; }
   if (msg.type === 'TICK') state.remaining = msg.remainingSec;
   if (msg.type === 'GAME_END') { state.locked = true; }
   if (msg.type === 'GRADING_PROGRESS') { state.phase = 'GRADING'; state.progress = msg; }
