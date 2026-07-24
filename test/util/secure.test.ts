@@ -13,3 +13,15 @@ test('different strings of the same length return false', () => {
 test('different-length strings return false', () => {
   assert.equal(constantTimeEqual('short', 'a-much-longer-string'), false);
 });
+
+test('non-string first argument returns false instead of throwing', () => {
+  assert.equal(constantTimeEqual(undefined as any, 'pw'), false);
+});
+
+test('non-string (number) first argument returns false instead of throwing', () => {
+  assert.equal(constantTimeEqual(123 as any, 'pw'), false);
+});
+
+test('non-string second argument returns false instead of throwing', () => {
+  assert.equal(constantTimeEqual('pw', undefined as any), false);
+});

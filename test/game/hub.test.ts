@@ -37,6 +37,17 @@ test('wrong admin password is rejected', () => {
   assert.ok(host.out.some(m => m.type === 'ERROR'));
 });
 
+test('HOST_AUTH with no adminPassword field does not throw and returns an ERROR', () => {
+  const { hub, mkConn } = setup();
+  const host = mkConn();
+  hub.register(host);
+  assert.doesNotThrow(() => {
+    hub.handle(host, JSON.stringify({ type: 'HOST_AUTH' }));
+  });
+  assert.equal(host.role, null);
+  assert.ok(host.out.some(m => m.type === 'ERROR'));
+});
+
 test('player join broadcasts PLAYER_JOINED to host', () => {
   const { hub, mkConn } = setup();
   const host = mkConn();
