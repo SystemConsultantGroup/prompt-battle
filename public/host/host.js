@@ -4,16 +4,53 @@ import { renderDashboard } from '/host/dashboard.js';
 import { renderResults } from '/host/results.js';
 import { spinReel } from '/host/roulette.js';
 
+const HOST_KEY = 'pb_host';
 const app = document.getElementById('app');
 let state = { phase: 'AUTH', room: null, mirror: {}, remaining: null, progress: null, ranking: null };
-const bus = connect(onMsg);
+const bus = connect(onMsg, onOpen);
 state.bus = bus;
 
+function storedHost() {
+  try {
+    const raw = sessionStorage.getItem(HOST_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function clearStoredHost() {
+  try { sessionStorage.removeItem(HOST_KEY); } catch { /* ignore */ }
+}
+
+function onOpen() {
+  const saved = storedHost();
+  if (saved) {
+    state.pw = saved.pw;
+    bus.send({ type: 'HOST_AUTH', adminPassword: saved.pw, roomCode: saved.roomCode });
+  }
+}
+
 function onMsg(msg) {
-  if (msg.type === 'ERROR') { alert(msg.message); return; }
+  if (msg.type === 'ERROR') {
+    // The only ERROR a host connection can get while unauthenticated is a
+    // bad admin password (a stale/expired reclaim just falls back to a
+    // fresh room server-side). Drop the stored session so we don't keep
+    // retrying it on every reconnect.
+    if (state.phase === 'AUTH') clearStoredHost();
+    alert(msg.message);
+    return;
+  }
+  if (msg.type === 'ROOM_CLOSED') {
+    clearStoredHost();
+    alert('Room closed');
+    state = { phase: 'AUTH', room: null, mirror: {}, remaining: null, progress: null, ranking: null, bus };
+    render();
+    return;
+  }
   if (msg.type === 'STATE') {
     state.phase = msg.room.phase; state.room = msg.room;
     state.problemId = msg.room.problemId; state.timeLimitSec = null;
+    if (msg.role === 'host') {
+      try { sessionStorage.setItem(HOST_KEY, JSON.stringify({ pw: state.pw, roomCode: msg.room.code })); } catch { /* ignore */ }
+    }
   }
   if (msg.type === 'PLAYER_JOINED') state.room.players.push({ username: msg.username });
   if (msg.type === 'PLAYER_LEFT') state.room.players = state.room.players.filter(p => p.username !== msg.username);
