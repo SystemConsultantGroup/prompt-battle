@@ -1,7 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Database } from '../db/index.ts';
 import { createAccount, listAccounts, deleteAccount, createProblem, getProblem,
-  listProblems, listCategories, deleteProblem, addCriterion, listCriteria } from '../db/index.ts';
+  listProblems, listCategories, deleteProblem, updateProblem, replaceCriteria,
+  addCriterion, listCriteria } from '../db/index.ts';
 import { constantTimeEqual } from '../util/secure.ts';
 
 async function readBody(req: IncomingMessage): Promise<any> {
@@ -53,6 +54,14 @@ export async function handleApi(
     json(res, 200, { ...p, criteria: listCriteria(db, p.id) }); return true;
   }
   if (m && method === 'DELETE') { deleteProblem(db, Number(m[1])); json(res, 200, { ok: true }); return true; }
+  if (m && method === 'PUT') {
+    const id = Number(m[1]);
+    if (!getProblem(db, id)) { json(res, 404, { error: 'not found' }); return true; }
+    const b = await readBody(req);
+    updateProblem(db, id, b.problem);
+    replaceCriteria(db, id, b.criteria ?? []);
+    json(res, 200, { ok: true }); return true;
+  }
 
   json(res, 404, { error: 'no route' }); return true;
 }

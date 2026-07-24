@@ -61,3 +61,67 @@ test('create problem with criteria and read back', async () => {
   assert.equal(p.title, 'T');
   assert.equal(p.criteria.length, 1);
 });
+
+test('PUT /api/problems/:id updates problem fields and replaces criteria', async () => {
+  const db = openDb(':memory:');
+  let r = mockReqRes('POST', '/api/problems', {
+    problem: { title: 'T', category: 'ui', difficulty: 'easy', timeLimitSec: 60,
+      targetHtml: '<b>', targetCss: '', targetJs: '', detailWeight: 0.3 },
+    criteria: [
+      { kind: 'basic', description: 'bold', sortOrder: 0 },
+      { kind: 'detail', description: 'shiny', sortOrder: 1 },
+    ],
+  });
+  await handleApi(db, 'pw', r.req, r.res);
+  const { id } = JSON.parse(r.res.body);
+
+  r = mockReqRes('PUT', `/api/problems/${id}`, {
+    problem: { title: 'Updated', category: 'ui', difficulty: 'hard', timeLimitSec: 120,
+      targetHtml: '<i>', targetCss: 'x{}', targetJs: '', detailWeight: 0.5 },
+    criteria: [{ kind: 'basic', description: 'italic', sortOrder: 0 }],
+  });
+  await handleApi(db, 'pw', r.req, r.res);
+  assert.equal(r.res.code, 200);
+
+  r = mockReqRes('GET', `/api/problems/${id}`);
+  await handleApi(db, 'pw', r.req, r.res);
+  const p = JSON.parse(r.res.body);
+  assert.equal(p.title, 'Updated');
+  assert.equal(p.criteria.length, 1);
+  assert.equal(p.criteria[0].description, 'italic');
+});
+
+test('PUT /api/problems/:id rejects wrong/missing admin password before mutating', async () => {
+  const db = openDb(':memory:');
+  let r = mockReqRes('POST', '/api/problems', {
+    problem: { title: 'T', category: 'ui', difficulty: 'easy', timeLimitSec: 60,
+      targetHtml: '', targetCss: '', targetJs: '', detailWeight: 0.3 },
+    criteria: [],
+  });
+  await handleApi(db, 'pw', r.req, r.res);
+  const { id } = JSON.parse(r.res.body);
+
+  r = mockReqRes('PUT', `/api/problems/${id}`, {
+    problem: { title: 'Hacked', category: 'ui', difficulty: 'easy', timeLimitSec: 60,
+      targetHtml: '', targetCss: '', targetJs: '', detailWeight: 0.3 },
+    criteria: [],
+  }, 'wrong');
+  await handleApi(db, 'pw', r.req, r.res);
+  assert.equal(r.res.code, 401);
+
+  r = mockReqRes('GET', `/api/problems/${id}`);
+  await handleApi(db, 'pw', r.req, r.res);
+  const p = JSON.parse(r.res.body);
+  assert.equal(p.title, 'T');
+});
+
+test('PUT /api/problems/:id on non-existent id returns 404', async () => {
+  const db = openDb(':memory:');
+  const r = mockReqRes('PUT', '/api/problems/999', {
+    problem: { title: 'X', category: 'ui', difficulty: 'easy', timeLimitSec: 60,
+      targetHtml: '', targetCss: '', targetJs: '', detailWeight: 0.3 },
+    criteria: [],
+  });
+  await handleApi(db, 'pw', r.req, r.res);
+  assert.equal(r.res.code, 404);
+});

@@ -70,12 +70,30 @@ export function listCategories(db: Database): string[] {
 export function deleteProblem(db: Database, id: number): void {
   db.prepare('DELETE FROM problems WHERE id = ?').run(id);
 }
+export function updateProblem(db: Database, id: number, p: NewProblem): void {
+  db.prepare(`UPDATE problems SET
+    title = ?, category = ?, difficulty = ?, time_limit_sec = ?,
+    target_html = ?, target_css = ?, target_js = ?, detail_weight = ?
+    WHERE id = ?`).run(
+    p.title, p.category, p.difficulty, p.timeLimitSec, p.targetHtml,
+    p.targetCss, p.targetJs, p.detailWeight, id);
+}
 
 export function addCriterion(db: Database, c: NewCriterion): number {
   const r = db.prepare(`INSERT INTO criteria
     (problem_id, kind, description, sort_order) VALUES(?,?,?,?)`)
     .run(c.problemId, c.kind, c.description, c.sortOrder);
   return Number(r.lastInsertRowid);
+}
+export function replaceCriteria(
+  db: Database, problemId: number, criteria: Omit<NewCriterion, 'problemId'>[],
+): void {
+  db.prepare('DELETE FROM criteria WHERE problem_id = ?').run(problemId);
+  criteria.forEach((c, i) => {
+    db.prepare(`INSERT INTO criteria
+      (problem_id, kind, description, sort_order) VALUES(?,?,?,?)`)
+      .run(problemId, c.kind, c.description, c.sortOrder ?? i);
+  });
 }
 export function listCriteria(db: Database, problemId: number): Criterion[] {
   return db.prepare(`SELECT id, problem_id AS problemId, kind, description,
