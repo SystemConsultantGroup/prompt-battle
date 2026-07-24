@@ -68,7 +68,10 @@ function onMsg(msg) {
   if (msg.type === 'PLAYER_LEFT') state.room.players = state.room.players.filter(p => p.username !== msg.username);
   if (msg.type === 'PROBLEM_SELECTED') {
     state.problemId = msg.problemId; state.timeLimitSec = msg.timeLimitSec;
-    if (state.pendingMode !== 'direct') state.animateWinner = msg.problemId;
+    // Only roulette/category picks are hidden-then-revealed via the spinning
+    // reel; direct and variation picks are chosen explicitly by the host and
+    // should just update the selection display immediately.
+    if (state.pendingMode === 'roulette' || state.pendingMode === 'category') state.animateWinner = msg.problemId;
   }
   if (msg.type === 'GAME_START') { state.phase = 'PLAYING'; state.problemId = msg.problemId; state.mirror = {}; }
   if (msg.type === 'TICK') state.remaining = msg.remainingSec;
@@ -110,6 +113,13 @@ function renderLobby() {
     } }, `${p.title} (${p.difficulty}, ${p.timeLimitSec}s)`)));
   } }, 'Direct pick');
 
+  const pickVariation = el('button', { onClick: async () => {
+    const ps = await fetchProblems();
+    mount(reel, ...ps.map(p => el('button', { onClick: () => {
+      state.pendingMode = 'variation'; state.bus.send({ type: 'SELECT_PROBLEM', mode: 'variation', problemId: p.id });
+    } }, `${p.title} (${p.difficulty}, ${p.timeLimitSec}s)`)));
+  } }, 'Pick + random variation');
+
   const spinBtn = el('button', { onClick: async () => {
     const ps = await fetchProblems();
     state.reelPool = ps;
@@ -127,7 +137,7 @@ function renderLobby() {
   } }, 'Category roulette');
 
   mount(app, el('div', { class: 'card wide' }, info,
-    el('div', { class: 'modes' }, pickDirect, spinBtn, catBtn),
+    el('div', { class: 'modes' }, pickDirect, pickVariation, spinBtn, catBtn),
     reel,
     el('p', {}, state.problemId != null ? `Selected problem #${state.problemId} — ${state.timeLimitSec}s` : 'No problem selected'),
     startBtn));

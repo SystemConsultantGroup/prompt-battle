@@ -3,7 +3,7 @@ import { el, mount } from '/shared/dom.js';
 
 const JOIN_KEY = 'pb_join';
 const app = document.getElementById('app');
-let state = { phase: 'JOIN', players: [], promptText: '' };
+let state = { phase: 'JOIN', players: [], promptText: '', variationId: null };
 const bus = connect(onMsg, onOpen);
 
 function storedJoin() {
@@ -28,7 +28,7 @@ function onMsg(msg) {
     // fall back to a manual JOIN screen instead of retrying forever.
     clearStoredJoin();
     alert(msg.message);
-    state = { phase: 'JOIN', players: [], promptText: '' };
+    state = { phase: 'JOIN', players: [], promptText: '', variationId: null };
     currentScreen = null;
     render();
     return;
@@ -36,7 +36,7 @@ function onMsg(msg) {
   if (msg.type === 'ROOM_CLOSED') {
     clearStoredJoin();
     alert('The host closed the room');
-    state = { phase: 'JOIN', players: [], promptText: '' };
+    state = { phase: 'JOIN', players: [], promptText: '', variationId: null };
     currentScreen = null;
     render();
     return;
@@ -61,7 +61,7 @@ function onMsg(msg) {
   }
   if (msg.type === 'PLAYER_JOINED') state.players.push({ username: msg.username });
   if (msg.type === 'PLAYER_LEFT') state.players = state.players.filter(p => p.username !== msg.username);
-  if (msg.type === 'GAME_START') { state.phase = 'PLAYING'; state.problemId = msg.problemId; state.promptText = ''; state.remaining = null; state.locked = false; }
+  if (msg.type === 'GAME_START') { state.phase = 'PLAYING'; state.problemId = msg.problemId; state.variationId = msg.variationId; state.promptText = ''; state.remaining = null; state.locked = false; }
   if (msg.type === 'TICK') state.remaining = msg.remainingSec;
   if (msg.type === 'GAME_END') { state.locked = true; }
   if (msg.type === 'GRADING_PROGRESS') { state.phase = 'GRADING'; state.progress = msg; }
@@ -105,7 +105,10 @@ let debounce;
 let editorTimerEl = null;
 let editorTextareaEl = null;
 function renderEditor() {
-  const frame = el('iframe', { class: 'target', src: `/render/target/${state.problemId}`, sandbox: 'allow-scripts' });
+  const targetSrc = state.variationId != null
+    ? `/render/variation/${state.variationId}`
+    : `/render/target/${state.problemId}`;
+  const frame = el('iframe', { class: 'target', src: targetSrc, sandbox: 'allow-scripts' });
   const ta = el('textarea', { class: 'prompt', placeholder: 'Describe the UI to build…' });
   ta.value = state.promptText ?? '';
   ta.disabled = !!state.locked;

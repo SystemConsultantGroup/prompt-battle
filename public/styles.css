@@ -39,3 +39,7 @@ textarea { width: 100%; min-height: 80px; margin: 8px 0; padding: 10px; border-r
 select { padding: 10px; border-radius: 8px; border: 0; }
 .crit-row { display: flex; gap: 8px; margin: 6px 0; }
 .crit-row input { margin: 0; }
+.variations-box { margin: 16px 0; padding: 12px; background: #11152b; border-radius: 8px; }
+.variations-box .hint { color: #9aa2c8; font-size: 13px; margin: 0; }
+.variations-box li { display: flex; align-items: center; gap: 8px; }
+.variations-box li button { width: auto; margin-left: auto; }

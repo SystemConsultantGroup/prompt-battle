@@ -58,6 +58,38 @@ async function renderConsole() {
 
   let editId = null;
   const formHeading = el('h2', {}, 'New problem');
+  const variationsBox = el('div', { class: 'variations-box' });
+  renderVariationsBox(null, []);
+
+  function renderVariationsBox(id, variations) {
+    variationsBox.replaceChildren();
+    if (id === null) {
+      variationsBox.append(el('p', { class: 'hint' }, 'Save the problem first to add variations'));
+      return;
+    }
+    const list = el('ul', {}, ...variations.map(v => el('li', {}, v.label, ' ',
+      el('button', { onClick: async () => {
+        await api(`/api/variations/${v.id}`, { method: 'DELETE' });
+        await enterEditMode(id);
+      } }, 'Delete'))));
+    const vf = {
+      label: el('input', { placeholder: 'variation label' }),
+      html: el('textarea', { placeholder: 'variation target HTML' }),
+      css: el('textarea', { placeholder: 'variation target CSS' }),
+      js: el('textarea', { placeholder: 'variation target JS' }),
+    };
+    const addVariationBtn = el('button', { onClick: async () => {
+      await api(`/api/problems/${id}/variations`, {
+        method: 'POST',
+        body: JSON.stringify({ label: vf.label.value, targetHtml: vf.html.value, targetCss: vf.css.value, targetJs: vf.js.value }),
+      });
+      await enterEditMode(id);
+    } }, 'Add variation');
+    variationsBox.append(
+      el('h3', {}, 'Variations'), list,
+      el('h4', {}, 'Add variation'),
+      vf.label, vf.html, vf.css, vf.js, addVariationBtn);
+  }
   const submitBtn = el('button', { onClick: async () => {
     const body = {
       problem: { title: f.title.value, category: f.category.value, difficulty: f.difficulty.value,
@@ -94,6 +126,7 @@ async function renderConsole() {
     formHeading.textContent = `Edit problem #${id}`;
     submitBtn.textContent = 'Update problem';
     cancelEditBtn.style.display = '';
+    renderVariationsBox(id, p.variations ?? []);
   }
 
   const problemsPanel = el('div', { class: 'card' }, formHeading,
@@ -101,6 +134,7 @@ async function renderConsole() {
     el('h3', {}, 'Criteria'), critBox,
     el('button', { onClick: () => addCrit() }, '+ criterion'),
     submitBtn, cancelEditBtn,
+    variationsBox,
     el('h3', {}, 'Existing'),
     el('ul', {}, ...problems.map(p => el('li', {}, `${p.title} (${p.category}, ${p.timeLimitSec}s) `,
       el('button', { onClick: () => enterEditMode(p.id) }, 'Edit'), ' ',
