@@ -125,3 +125,89 @@ test('PUT /api/problems/:id on non-existent id returns 404', async () => {
   await handleApi(db, 'pw', r.req, r.res);
   assert.equal(r.res.code, 404);
 });
+
+test('POST /api/problems/:id/variations creates a variation and GET /api/problems/:id includes it', async () => {
+  const db = openDb(':memory:');
+  let r = mockReqRes('POST', '/api/problems', {
+    problem: { title: 'T', category: 'ui', difficulty: 'easy', timeLimitSec: 60,
+      targetHtml: '<b>', targetCss: '', targetJs: '', detailWeight: 0.3 },
+    criteria: [],
+  });
+  await handleApi(db, 'pw', r.req, r.res);
+  const { id } = JSON.parse(r.res.body);
+
+  r = mockReqRes('POST', `/api/problems/${id}/variations`, {
+    label: 'dark', targetHtml: '<b class="dark">', targetCss: 'b{color:#fff}',
+    targetJs: '', sortOrder: 0,
+  });
+  await handleApi(db, 'pw', r.req, r.res);
+  assert.equal(r.res.code, 200);
+  const { id: variationId } = JSON.parse(r.res.body);
+  assert.equal(typeof variationId, 'number');
+
+  r = mockReqRes('GET', `/api/problems/${id}`);
+  await handleApi(db, 'pw', r.req, r.res);
+  const p = JSON.parse(r.res.body);
+  assert.equal(p.variations.length, 1);
+  assert.equal(p.variations[0].label, 'dark');
+});
+
+test('POST /api/problems/:id/variations on a non-existent problem returns 404', async () => {
+  const db = openDb(':memory:');
+  const r = mockReqRes('POST', '/api/problems/999/variations', {
+    label: 'x', targetHtml: '', targetCss: '', targetJs: '',
+  });
+  await handleApi(db, 'pw', r.req, r.res);
+  assert.equal(r.res.code, 404);
+});
+
+test('DELETE /api/variations/:id removes the variation', async () => {
+  const db = openDb(':memory:');
+  let r = mockReqRes('POST', '/api/problems', {
+    problem: { title: 'T', category: 'ui', difficulty: 'easy', timeLimitSec: 60,
+      targetHtml: '', targetCss: '', targetJs: '', detailWeight: 0.3 },
+    criteria: [],
+  });
+  await handleApi(db, 'pw', r.req, r.res);
+  const { id } = JSON.parse(r.res.body);
+
+  r = mockReqRes('POST', `/api/problems/${id}/variations`, {
+    label: 'v', targetHtml: '', targetCss: '', targetJs: '',
+  });
+  await handleApi(db, 'pw', r.req, r.res);
+  const { id: variationId } = JSON.parse(r.res.body);
+
+  r = mockReqRes('DELETE', `/api/variations/${variationId}`);
+  await handleApi(db, 'pw', r.req, r.res);
+  assert.equal(r.res.code, 200);
+
+  r = mockReqRes('GET', `/api/problems/${id}`);
+  await handleApi(db, 'pw', r.req, r.res);
+  const p = JSON.parse(r.res.body);
+  assert.equal(p.variations.length, 0);
+});
+
+test('variation routes reject requests before mutating when the admin password is wrong', async () => {
+  const db = openDb(':memory:');
+  let r = mockReqRes('POST', '/api/problems', {
+    problem: { title: 'T', category: 'ui', difficulty: 'easy', timeLimitSec: 60,
+      targetHtml: '', targetCss: '', targetJs: '', detailWeight: 0.3 },
+    criteria: [],
+  });
+  await handleApi(db, 'pw', r.req, r.res);
+  const { id } = JSON.parse(r.res.body);
+
+  r = mockReqRes('POST', `/api/problems/${id}/variations`,
+    { label: 'v', targetHtml: '', targetCss: '', targetJs: '' }, 'wrong');
+  await handleApi(db, 'pw', r.req, r.res);
+  assert.equal(r.res.code, 401);
+
+  r = mockReqRes('GET', `/api/problems/${id}`);
+  await handleApi(db, 'pw', r.req, r.res);
+  const p = JSON.parse(r.res.body);
+  assert.equal(p.variations.length, 0);
+
+  r = mockReqRes('DELETE', '/api/variations/1', undefined, 'wrong');
+  await handleApi(db, 'pw', r.req, r.res);
+  assert.equal(r.res.code, 401);
+});

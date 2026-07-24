@@ -1,5 +1,5 @@
 export type Phase = 'LOBBY' | 'PLAYING' | 'GRADING' | 'RESULT';
-export type SelectMode = 'direct' | 'roulette' | 'category';
+export type SelectMode = 'direct' | 'roulette' | 'category' | 'variation';
 
 export type GeneratedCode = { html: string; css: string; js: string };
 export type ItemVerdict = { id: number; passed: boolean; rate: number; reason: string };
@@ -41,7 +41,7 @@ export type ServerMsg =
   | { type: 'PLAYER_LEFT'; username: string }
   | { type: 'PROMPT_MIRROR'; username: string; text: string }
   | { type: 'PROBLEM_SELECTED'; problemId: number; timeLimitSec: number }
-  | { type: 'GAME_START'; problemId: number; deadline: number }
+  | { type: 'GAME_START'; problemId: number; deadline: number; variationId: number | null }
   | { type: 'TICK'; remainingSec: number }
   | { type: 'GAME_END' }
   | { type: 'GRADING_PROGRESS'; done: number; total: number }

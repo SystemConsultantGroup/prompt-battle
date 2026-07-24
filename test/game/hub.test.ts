@@ -11,6 +11,7 @@ function setup() {
     adminPassword: 'pw',
     onGradingStart: () => {},
     listProblems: () => [],
+    listVariations: () => [],
   });
   const mkConn = (): Conn & { out: ServerMsg[] } => {
     const out: ServerMsg[] = [];
@@ -112,6 +113,7 @@ test('host disconnect grace: room survives immediately after drop, and is only e
     adminPassword: 'pw',
     onGradingStart: () => {},
     listProblems: () => [],
+    listVariations: () => [],
     onRoomClosed: (code) => { closedCode = code; },
     hostEvictGraceMs: 5000,
   });
@@ -152,6 +154,7 @@ test('host reclaim (HOST_AUTH with roomCode) before the grace timer fires cancel
     adminPassword: 'pw',
     onGradingStart: () => {},
     listProblems: () => [],
+    listVariations: () => [],
     onRoomClosed: (code) => { closedCode = code; },
     hostEvictGraceMs: 5000,
   });

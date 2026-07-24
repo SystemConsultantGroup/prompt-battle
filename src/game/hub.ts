@@ -1,7 +1,8 @@
 import type { GameManager } from './GameManager.ts';
 import type { ClientMsg, ServerMsg } from './types.ts';
-import { resolveSelection } from './select.ts';
+import { resolveSelection, pickVariation } from './select.ts';
 import { constantTimeEqual } from '../util/secure.ts';
+import type { Variation } from '../db/index.ts';
 
 export interface Conn {
   send(msg: ServerMsg): void;
@@ -14,9 +15,12 @@ export type HubDeps = {
   adminPassword: string;
   onGradingStart(roomCode: string): void; // Task 17 wires the grading pipeline
   listProblems(): import('../db/index.ts').Problem[];
+  listVariations(problemId: number): Variation[];
   onRoomClosed?(roomCode: string): void;
   /** Grace period (ms) a room survives a host disconnect before eviction. */
   hostEvictGraceMs?: number;
+  /** Injectable RNG for server-authoritative variation selection (tests). */
+  rng?(): number;
 };
 
 /** Default grace period before an unreclaimed host's room is evicted. */
@@ -111,6 +115,17 @@ export class Hub {
     }
     const code = conn.roomCode;
     if (msg.type === 'SELECT_PROBLEM') {
+      if (msg.mode === 'variation') {
+        if (msg.problemId == null) { conn.send({ type: 'ERROR', message: 'unknown problem' }); return; }
+        const problemId = msg.problemId;
+        const res = this.mgr.selectProblem(code, problemId);
+        if (!res.ok) { conn.send({ type: 'ERROR', message: res.error! }); return; }
+        const vids = this.deps.listVariations(problemId).map(v => v.id);
+        const chosen = pickVariation(vids, this.deps.rng ?? Math.random);
+        this.mgr.setActiveVariation(code, chosen);
+        this.broadcast(code, { type: 'PROBLEM_SELECTED', problemId, timeLimitSec: res.timeLimitSec! });
+        return;
+      }
       const sel = resolveSelection(this.deps.listProblems(), msg.mode,
         { problemId: msg.problemId, category: msg.category });
       if ('error' in sel) { conn.send({ type: 'ERROR', message: sel.error }); return; }
@@ -125,7 +140,10 @@ export class Hub {
         (s) => this.broadcast(code, { type: 'TICK', remainingSec: s }),
         () => { this.broadcast(code, { type: 'GAME_END' }); this.deps.onGradingStart(code); });
       if (!res.ok) { conn.send({ type: 'ERROR', message: res.error! }); return; }
-      this.broadcast(code, { type: 'GAME_START', problemId: room!.problemId!, deadline: res.deadline! });
+      this.broadcast(code, {
+        type: 'GAME_START', problemId: room!.problemId!, deadline: res.deadline!,
+        variationId: room!.activeVariationId,
+      });
       return;
     }
     if (msg.type === 'FORCE_END') {

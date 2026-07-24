@@ -4,7 +4,7 @@ import { serveStatic } from './http/static.ts';
 import { renderDoc, GenStore } from './http/render.ts';
 import { handleApi } from './admin/routes.ts';
 import { WebSocketServer } from 'ws';
-import { openDb, listAccounts, getProblem, listProblems, listCriteria, type Database } from './db/index.ts';
+import { openDb, listAccounts, getProblem, listProblems, listCriteria, listVariations, getVariation, type Database } from './db/index.ts';
 import { GameManager } from './game/GameManager.ts';
 import { Hub, type Conn } from './game/hub.ts';
 import { gradeRoom } from './grading/pipeline.ts';
@@ -77,6 +77,7 @@ export function attachWs(server: http.Server, opts: {
     adminPassword: opts.adminPassword,
     onGradingStart,
     listProblems: () => listProblems(db),
+    listVariations: (pid) => listVariations(db, pid),
     onRoomClosed: (code) => genStore.clearRoom(code),
   });
 
@@ -102,6 +103,14 @@ export function makeRouter(db: Database, genStore: GenStore) {
       if (!p) { res.writeHead(404).end('no problem'); return true; }
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
       res.end(renderDoc({ html: p.targetHtml, css: p.targetCss, js: p.targetJs }));
+      return true;
+    }
+    m = url.match(/^\/render\/variation\/(\d+)$/);
+    if (m) {
+      const v = getVariation(db, Number(m[1]));
+      if (!v) { res.writeHead(404).end('no variation'); return true; }
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      res.end(renderDoc({ html: v.targetHtml, css: v.targetCss, js: v.targetJs }));
       return true;
     }
     m = url.match(/^\/render\/gen\/([a-z0-9]+)$/);

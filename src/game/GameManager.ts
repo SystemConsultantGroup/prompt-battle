@@ -14,6 +14,7 @@ export type Room = {
   maxPlayers: number;
   players: Map<string, PlayerState>;
   problemId: number | null;
+  activeVariationId: number | null;
   deadline: number | null;
   timer: unknown | null;
   evictTimer: unknown | null;
@@ -45,7 +46,8 @@ export class GameManager {
     while (this.rooms.has(code)) code = this.codeFactory();
     this.rooms.set(code, {
       code, phase: 'LOBBY', maxPlayers: opts.maxPlayers,
-      players: new Map(), problemId: null, deadline: null, timer: null, evictTimer: null,
+      players: new Map(), problemId: null, activeVariationId: null,
+      deadline: null, timer: null, evictTimer: null,
     });
     return code;
   }
@@ -108,7 +110,12 @@ export class GameManager {
     const problem = this.deps.getProblem(problemId);
     if (!problem) return { ok: false, error: 'unknown problem' };
     room.problemId = problemId;
+    room.activeVariationId = null;
     return { ok: true, timeLimitSec: problem.timeLimitSec };
+  }
+  setActiveVariation(code: string, variationId: number | null): void {
+    const room = this.rooms.get(code);
+    if (room) room.activeVariationId = variationId;
   }
   startGame(code: string, onTick: (s: number) => void, onEnd: () => void) {
     const room = this.rooms.get(code);
@@ -142,7 +149,7 @@ export class GameManager {
     const room = this.rooms.get(code);
     if (!room) return;
     if (room.timer) { this.sched().clearInterval(room.timer); room.timer = null; }
-    room.phase = 'LOBBY'; room.problemId = null; room.deadline = null;
+    room.phase = 'LOBBY'; room.problemId = null; room.activeVariationId = null; room.deadline = null;
     for (const p of room.players.values()) p.prompt = '';
   }
   removeRoom(code: string): void {

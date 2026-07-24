@@ -27,6 +27,7 @@ test('grading flow broadcasts progress then RESULT', async () => {
       hub.broadcast(code, { type: 'RESULT', ranking: results });
     },
     listProblems: () => [problem],
+    listVariations: () => [],
   });
   const host: Conn & { out: ServerMsg[] } = { out, send: (m) => out.push(m), role: null, roomCode: null, username: null };
   hub.register(host);
