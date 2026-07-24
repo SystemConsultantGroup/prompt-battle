@@ -154,5 +154,7 @@ if (import.meta.url === `file://${process.argv[1]}` ||
   });
   router = makeRouter(db, genStore);
 
-  console.log(`Prompt Battle on http://localhost:${port}`);
+  const { networkInterfaces } = await import('node:os');
+  const { lanHosts, startupBanner } = await import('./http/netinfo.ts');
+  console.log(startupBanner(port, lanHosts(networkInterfaces())));
 }
