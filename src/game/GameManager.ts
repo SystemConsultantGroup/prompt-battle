@@ -1,10 +1,12 @@
 import type { Phase, RoomSummary } from './types.ts';
 import type { Problem } from '../db/index.ts';
 
-export type PlayerState = { username: string; prompt: string };
+export type PlayerState = { username: string; prompt: string; connected: boolean };
 export type Scheduler = {
   setInterval(fn: () => void, ms: number): unknown;
   clearInterval(handle: unknown): void;
+  setTimeout(fn: () => void, ms: number): unknown;
+  clearTimeout(handle: unknown): void;
 };
 export type Room = {
   code: string;
@@ -12,8 +14,10 @@ export type Room = {
   maxPlayers: number;
   players: Map<string, PlayerState>;
   problemId: number | null;
+  activeVariationId: number | null;
   deadline: number | null;
   timer: unknown | null;
+  evictTimer: unknown | null;
 };
 export type GameDeps = {
   now(): number;
@@ -42,24 +46,38 @@ export class GameManager {
     while (this.rooms.has(code)) code = this.codeFactory();
     this.rooms.set(code, {
       code, phase: 'LOBBY', maxPlayers: opts.maxPlayers,
-      players: new Map(), problemId: null, deadline: null, timer: null,
+      players: new Map(), problemId: null, activeVariationId: null,
+      deadline: null, timer: null, evictTimer: null,
     });
     return code;
   }
   getRoom(code: string): Room | undefined { return this.rooms.get(code); }
 
-  joinPlayer(code: string, username: string, allowed: boolean): { ok: boolean; error?: string } {
+  joinPlayer(code: string, username: string, allowed: boolean):
+      { ok: boolean; error?: string; reconnected?: boolean } {
     const room = this.rooms.get(code);
     if (!room) return { ok: false, error: 'unknown room' };
     if (!allowed) return { ok: false, error: 'unknown account' };
+    const existing = room.players.get(username);
+    if (existing) {
+      if (existing.connected) return { ok: false, error: 'name in use' };
+      existing.connected = true;
+      return { ok: true, reconnected: true };
+    }
     if (room.phase !== 'LOBBY') return { ok: false, error: 'game in progress' };
-    if (room.players.has(username)) return { ok: false, error: 'name in use' };
     if (room.players.size >= room.maxPlayers) return { ok: false, error: 'room full' };
-    room.players.set(username, { username, prompt: '' });
+    room.players.set(username, { username, prompt: '', connected: true });
     return { ok: true };
   }
   removePlayer(code: string, username: string): void {
     this.rooms.get(code)?.players.delete(username);
+  }
+  markDisconnected(code: string, username: string): void {
+    const p = this.rooms.get(code)?.players.get(username);
+    if (p) p.connected = false;
+  }
+  getPrompt(code: string, username: string): string {
+    return this.rooms.get(code)?.players.get(username)?.prompt ?? '';
   }
 
   summary(code: string): RoomSummary {
@@ -70,15 +88,16 @@ export class GameManager {
     return {
       code: room.code,
       phase: room.phase,
-      players: [...room.players.values()].map(p => ({ username: p.username })),
+      players: [...room.players.values()].map(p => ({ username: p.username, connected: p.connected })),
       maxPlayers: room.maxPlayers,
       remainingSec,
       problemId: room.problemId,
+      deadline: room.deadline,
     };
   }
 
   private sched(): Scheduler {
-    return this.deps.scheduler ?? { setInterval, clearInterval };
+    return this.deps.scheduler ?? { setInterval, clearInterval, setTimeout, clearTimeout };
   }
   setPrompt(code: string, username: string, text: string) {
     const p = this.rooms.get(code)?.players.get(username);
@@ -91,7 +110,12 @@ export class GameManager {
     const problem = this.deps.getProblem(problemId);
     if (!problem) return { ok: false, error: 'unknown problem' };
     room.problemId = problemId;
+    room.activeVariationId = null;
     return { ok: true, timeLimitSec: problem.timeLimitSec };
+  }
+  setActiveVariation(code: string, variationId: number | null): void {
+    const room = this.rooms.get(code);
+    if (room) room.activeVariationId = variationId;
   }
   startGame(code: string, onTick: (s: number) => void, onEnd: () => void) {
     const room = this.rooms.get(code);
@@ -125,7 +149,37 @@ export class GameManager {
     const room = this.rooms.get(code);
     if (!room) return;
     if (room.timer) { this.sched().clearInterval(room.timer); room.timer = null; }
-    room.phase = 'LOBBY'; room.problemId = null; room.deadline = null;
+    room.phase = 'LOBBY'; room.problemId = null; room.activeVariationId = null; room.deadline = null;
     for (const p of room.players.values()) p.prompt = '';
+  }
+  removeRoom(code: string): void {
+    const room = this.rooms.get(code);
+    if (!room) return;
+    if (room.timer) { this.sched().clearInterval(room.timer); room.timer = null; }
+    if (room.evictTimer) { this.sched().clearTimeout(room.evictTimer); room.evictTimer = null; }
+    this.rooms.delete(code);
+  }
+
+  /**
+   * Host connection dropped: start a grace-period timer instead of evicting
+   * immediately, so a brief reconnect (see `hostReclaimed`) can save the
+   * room. If a grace timer is already pending, restart it.
+   */
+  hostDisconnected(code: string, graceMs: number, onEvict: (code: string) => void): void {
+    const room = this.rooms.get(code);
+    if (!room) return;
+    if (room.evictTimer) { this.sched().clearTimeout(room.evictTimer); room.evictTimer = null; }
+    room.evictTimer = this.sched().setTimeout(() => {
+      const r = this.rooms.get(code);
+      if (!r) return;
+      r.evictTimer = null;
+      this.removeRoom(code);
+      onEvict(code);
+    }, graceMs);
+  }
+  /** Host reconnected before the grace period elapsed: cancel the pending eviction. */
+  hostReclaimed(code: string): void {
+    const room = this.rooms.get(code);
+    if (room?.evictTimer) { this.sched().clearTimeout(room.evictTimer); room.evictTimer = null; }
   }
 }

@@ -4,7 +4,7 @@ import { serveStatic } from './http/static.ts';
 import { renderDoc, GenStore } from './http/render.ts';
 import { handleApi } from './admin/routes.ts';
 import { WebSocketServer } from 'ws';
-import { openDb, listAccounts, getProblem, listProblems, listCriteria, type Database } from './db/index.ts';
+import { openDb, listAccounts, getProblem, listProblems, listCriteria, listVariations, getVariation, type Database } from './db/index.ts';
 import { GameManager } from './game/GameManager.ts';
 import { Hub, type Conn } from './game/hub.ts';
 import { gradeRoom } from './grading/pipeline.ts';
@@ -60,6 +60,10 @@ export function attachWs(server: http.Server, opts: {
         onProgress: (done, total) => hub.broadcast(code, { type: 'GRADING_PROGRESS', done, total }),
         storeCode: (genCode) => genStore.put(genCode, code),
       });
+      // The room can be evicted (host disconnect grace) while grading awaits the
+      // LLM. If so, drop the results: players already got ROOM_CLOSED, and the
+      // renders stored during grading would otherwise leak.
+      if (!mgr.getRoom(code)) { genStore.clearRoom(code); return; }
       mgr.setPhase(code, 'RESULT');
       hub.broadcast(code, { type: 'RESULT', ranking: results });
     } catch (err) {
@@ -67,6 +71,7 @@ export function attachWs(server: http.Server, opts: {
       // fire-and-forget from Hub (see src/game/hub.ts), so any throw here
       // would crash the whole process. Log and unstick the room instead.
       console.error('[grading] failed for room', code, err);
+      if (!mgr.getRoom(code)) { genStore.clearRoom(code); return; }
       mgr.setPhase(code, 'RESULT');
       hub.broadcast(code, { type: 'RESULT', ranking: [] });
     }
@@ -77,6 +82,8 @@ export function attachWs(server: http.Server, opts: {
     adminPassword: opts.adminPassword,
     onGradingStart,
     listProblems: () => listProblems(db),
+    listVariations: (pid) => listVariations(db, pid),
+    onRoomClosed: (code) => genStore.clearRoom(code),
   });
 
   const wss = new WebSocketServer({ server });
@@ -101,6 +108,14 @@ export function makeRouter(db: Database, genStore: GenStore) {
       if (!p) { res.writeHead(404).end('no problem'); return true; }
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
       res.end(renderDoc({ html: p.targetHtml, css: p.targetCss, js: p.targetJs }));
+      return true;
+    }
+    m = url.match(/^\/render\/variation\/(\d+)$/);
+    if (m) {
+      const v = getVariation(db, Number(m[1]));
+      if (!v) { res.writeHead(404).end('no variation'); return true; }
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      res.end(renderDoc({ html: v.targetHtml, css: v.targetCss, js: v.targetJs }));
       return true;
     }
     m = url.match(/^\/render\/gen\/([a-z0-9]+)$/);
@@ -144,5 +159,7 @@ if (import.meta.url === `file://${process.argv[1]}` ||
   });
   router = makeRouter(db, genStore);
 
-  console.log(`Prompt Battle on http://localhost:${port}`);
+  const { networkInterfaces } = await import('node:os');
+  const { lanHosts, startupBanner } = await import('./http/netinfo.ts');
+  console.log(startupBanner(port, lanHosts(networkInterfaces())));
 }

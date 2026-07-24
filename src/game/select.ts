@@ -17,3 +17,16 @@ export function resolveSelection(
   const problem = pool[Math.floor(rng() * pool.length)];
   return { problem, pool };
 }
+
+/**
+ * Uniformly picks among {base render, one render per variation}: n
+ * variations means n+1 equally-likely outcomes. Index 0 = base, encoded
+ * as `null`; any other index maps to that variation's id.
+ */
+export function pickVariation(
+  variationIds: number[], rng: () => number = Math.random,
+): number | null {
+  const outcomes = variationIds.length + 1;
+  const idx = Math.floor(rng() * outcomes);
+  return idx === 0 ? null : variationIds[idx - 1];
+}

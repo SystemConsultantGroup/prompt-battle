@@ -1,5 +1,5 @@
 export type Phase = 'LOBBY' | 'PLAYING' | 'GRADING' | 'RESULT';
-export type SelectMode = 'direct' | 'roulette' | 'category';
+export type SelectMode = 'direct' | 'roulette' | 'category' | 'variation';
 
 export type GeneratedCode = { html: string; css: string; js: string };
 export type ItemVerdict = { id: number; passed: boolean; rate: number; reason: string };
@@ -11,7 +11,7 @@ export type PlayerResult = {
   username: string; total: number; basicScore: number; detailScore: number;
   items: ResultItem[]; genToken?: string;
 };
-export type PlayerView = { username: string };
+export type PlayerView = { username: string; connected: boolean };
 
 export type RoomSummary = {
   code: string;
@@ -20,6 +20,7 @@ export type RoomSummary = {
   maxPlayers: number;
   remainingSec: number | null;
   problemId: number | null;
+  deadline: number | null;
 };
 
 // client -> server
@@ -34,14 +35,15 @@ export type ClientMsg =
 
 // server -> client
 export type ServerMsg =
-  | { type: 'STATE'; room: RoomSummary; role: 'host' | 'player' }
+  | { type: 'STATE'; room: RoomSummary; role: 'host' | 'player'; yourPrompt?: string }
   | { type: 'ERROR'; message: string }
   | { type: 'PLAYER_JOINED'; username: string }
   | { type: 'PLAYER_LEFT'; username: string }
   | { type: 'PROMPT_MIRROR'; username: string; text: string }
   | { type: 'PROBLEM_SELECTED'; problemId: number; timeLimitSec: number }
-  | { type: 'GAME_START'; problemId: number; deadline: number }
+  | { type: 'GAME_START'; problemId: number; deadline: number; variationId: number | null }
   | { type: 'TICK'; remainingSec: number }
   | { type: 'GAME_END' }
   | { type: 'GRADING_PROGRESS'; done: number; total: number }
-  | { type: 'RESULT'; ranking: PlayerResult[] };
+  | { type: 'RESULT'; ranking: PlayerResult[] }
+  | { type: 'ROOM_CLOSED' };

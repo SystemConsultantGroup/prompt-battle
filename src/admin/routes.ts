@@ -1,7 +1,9 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Database } from '../db/index.ts';
 import { createAccount, listAccounts, deleteAccount, createProblem, getProblem,
-  listProblems, listCategories, deleteProblem, addCriterion, listCriteria } from '../db/index.ts';
+  listProblems, listCategories, deleteProblem, updateProblem, replaceCriteria,
+  addCriterion, listCriteria, addVariation, listVariations, deleteVariation } from '../db/index.ts';
+import { constantTimeEqual } from '../util/secure.ts';
 
 async function readBody(req: IncomingMessage): Promise<any> {
   let raw = '';
@@ -18,7 +20,10 @@ export async function handleApi(
 ): Promise<boolean> {
   const url = (req.url ?? '').split('?')[0];
   if (!url.startsWith('/api/')) return false;
-  if (req.headers['x-admin-password'] !== adminPassword) { json(res, 401, { error: 'unauthorized' }); return true; }
+  const providedPassword = req.headers['x-admin-password'];
+  if (typeof providedPassword !== 'string' || !constantTimeEqual(providedPassword, adminPassword)) {
+    json(res, 401, { error: 'unauthorized' }); return true;
+  }
   const method = req.method ?? 'GET';
 
   if (url === '/api/accounts' && method === 'GET') { json(res, 200, listAccounts(db)); return true; }
@@ -46,9 +51,35 @@ export async function handleApi(
   if (m && method === 'GET') {
     const p = getProblem(db, Number(m[1]));
     if (!p) { json(res, 404, { error: 'not found' }); return true; }
-    json(res, 200, { ...p, criteria: listCriteria(db, p.id) }); return true;
+    json(res, 200, { ...p, criteria: listCriteria(db, p.id), variations: listVariations(db, p.id) }); return true;
   }
   if (m && method === 'DELETE') { deleteProblem(db, Number(m[1])); json(res, 200, { ok: true }); return true; }
+  if (m && method === 'PUT') {
+    const id = Number(m[1]);
+    if (!getProblem(db, id)) { json(res, 404, { error: 'not found' }); return true; }
+    const b = await readBody(req);
+    updateProblem(db, id, b.problem);
+    replaceCriteria(db, id, b.criteria ?? []);
+    json(res, 200, { ok: true }); return true;
+  }
+
+  m = url.match(/^\/api\/problems\/(\d+)\/variations$/);
+  if (m && method === 'POST') {
+    const problemId = Number(m[1]);
+    if (!getProblem(db, problemId)) { json(res, 404, { error: 'not found' }); return true; }
+    const b = await readBody(req);
+    const id = addVariation(db, {
+      problemId, label: b.label, targetHtml: b.targetHtml,
+      targetCss: b.targetCss, targetJs: b.targetJs, sortOrder: b.sortOrder ?? 0,
+    });
+    json(res, 200, { id }); return true;
+  }
+
+  m = url.match(/^\/api\/variations\/(\d+)$/);
+  if (m && method === 'DELETE') {
+    deleteVariation(db, Number(m[1]));
+    json(res, 200, { ok: true }); return true;
+  }
 
   json(res, 404, { error: 'no route' }); return true;
 }

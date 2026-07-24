@@ -22,3 +22,12 @@ CREATE TABLE IF NOT EXISTS criteria (
   description TEXT NOT NULL,
   sort_order INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS problem_variations (
+  id INTEGER PRIMARY KEY,
+  problem_id INTEGER NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
+  label TEXT NOT NULL,
+  target_html TEXT NOT NULL,
+  target_css TEXT NOT NULL,
+  target_js TEXT NOT NULL,
+  sort_order INTEGER NOT NULL DEFAULT 0
+);

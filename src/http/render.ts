@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import type { GeneratedCode } from '../game/types.ts';
 
 function neutralizeClosers(s: string): string {
@@ -18,12 +19,11 @@ export function renderDoc(code: GeneratedCode): string {
 </body>`;
 }
 
-let counter = 0;
 export class GenStore {
   private map = new Map<string, GeneratedCode>();
   private roomTokens = new Map<string, Set<string>>();
   put(code: GeneratedCode, roomCode?: string): string {
-    const token = `g${(counter++).toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`;
+    const token = randomBytes(16).toString('hex');
     this.map.set(token, code);
     if (roomCode !== undefined) {
       let tokens = this.roomTokens.get(roomCode);

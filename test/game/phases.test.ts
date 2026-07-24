@@ -9,6 +9,10 @@ function fakeClock() {
     scheduler: {
       setInterval: (fn: () => void) => { timers.add(fn); return fn as any; },
       clearInterval: (h: any) => { timers.delete(h); },
+      // Not exercised by these tests (no host-eviction grace timer here),
+      // but GameManager's Scheduler type requires the full surface.
+      setTimeout: (_fn: () => void) => null,
+      clearTimeout: (_h: any) => {},
     },
     advance: (ms: number) => { t += ms; for (const fn of timers) fn(); },
   };
@@ -54,4 +58,25 @@ test('restart returns to LOBBY and clears prompts', () => {
   m.restart(code);
   assert.equal(m.summary(code).phase, 'LOBBY');
   assert.equal(m.getRoom(code)!.players.get('alice')!.prompt, '');
+});
+
+test('removeRoom clears the running timer and deletes the room', () => {
+  const c = fakeClock();
+  const m = new GameManager({ now: c.now, getProblem: () => problem, scheduler: c.scheduler });
+  const code = m.createRoom({ maxPlayers: 4 });
+  m.selectProblem(code, 1);
+  m.startGame(code, () => {}, () => {});
+  assert.equal(m.getRoom(code)!.timer !== null, true);
+
+  m.removeRoom(code);
+
+  assert.equal(m.getRoom(code), undefined);
+  // Advancing the clock must not invoke any lingering timer callback.
+  assert.doesNotThrow(() => c.advance(1000));
+});
+
+test('removeRoom on an unknown room is a no-op', () => {
+  const c = fakeClock();
+  const m = new GameManager({ now: c.now, getProblem: () => problem, scheduler: c.scheduler });
+  assert.doesNotThrow(() => m.removeRoom('NOPE'));
 });

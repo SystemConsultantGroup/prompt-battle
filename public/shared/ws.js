@@ -1,9 +1,10 @@
-export function connect(onMsg) {
+export function connect(onMsg, onOpen) {
   let socket;
   const open = () => {
     socket = new WebSocket(`ws://${location.host}`);
     socket.addEventListener('message', (e) => onMsg(JSON.parse(e.data)));
     socket.addEventListener('close', () => setTimeout(open, 1000));
+    if (onOpen) socket.addEventListener('open', () => onOpen());
   };
   open();
   return {

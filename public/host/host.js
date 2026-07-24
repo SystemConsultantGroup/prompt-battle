@@ -4,22 +4,74 @@ import { renderDashboard } from '/host/dashboard.js';
 import { renderResults } from '/host/results.js';
 import { spinReel } from '/host/roulette.js';
 
+const HOST_KEY = 'pb_host';
 const app = document.getElementById('app');
 let state = { phase: 'AUTH', room: null, mirror: {}, remaining: null, progress: null, ranking: null };
-const bus = connect(onMsg);
+const bus = connect(onMsg, onOpen);
 state.bus = bus;
 
+function storedHost() {
+  try {
+    const raw = sessionStorage.getItem(HOST_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function clearStoredHost() {
+  try { sessionStorage.removeItem(HOST_KEY); } catch { /* ignore */ }
+}
+
+function onOpen() {
+  const saved = storedHost();
+  if (saved) {
+    state.pw = saved.pw;
+    bus.send({ type: 'HOST_AUTH', adminPassword: saved.pw, roomCode: saved.roomCode });
+  }
+}
+
 function onMsg(msg) {
-  if (msg.type === 'ERROR') { alert(msg.message); return; }
+  if (msg.type === 'ERROR') {
+    // A bad admin password can arrive at any phase, not just AUTH: a mid-game
+    // socket drop→reopen auto-sends HOST_AUTH via onOpen, and if the stored
+    // password is stale/wrong the server rejects it while phase is still
+    // PLAYING/GRADING/etc. Detect the failure by message (server sends this
+    // exact string), not by current phase, so the stored session always
+    // gets cleared and the host lands back on the password screen instead
+    // of freezing on stale data and retrying forever.
+    if (msg.message === 'bad admin password') {
+      clearStoredHost();
+      state.phase = 'AUTH';
+      render();
+    }
+    alert(msg.message);
+    return;
+  }
+  if (msg.type === 'ROOM_CLOSED') {
+    clearStoredHost();
+    alert('Room closed');
+    state = { phase: 'AUTH', room: null, mirror: {}, remaining: null, progress: null, ranking: null, bus };
+    render();
+    return;
+  }
   if (msg.type === 'STATE') {
     state.phase = msg.room.phase; state.room = msg.room;
     state.problemId = msg.room.problemId; state.timeLimitSec = null;
+    // Restore the countdown immediately on reclaim so the dashboard timer
+    // isn't blank until the next TICK arrives (which then corrects skew).
+    state.remaining = (msg.room.deadline != null && msg.room.phase === 'PLAYING')
+      ? Math.max(0, Math.ceil((msg.room.deadline - Date.now()) / 1000))
+      : state.remaining;
+    if (msg.role === 'host') {
+      try { sessionStorage.setItem(HOST_KEY, JSON.stringify({ pw: state.pw, roomCode: msg.room.code })); } catch { /* ignore */ }
+    }
   }
   if (msg.type === 'PLAYER_JOINED') state.room.players.push({ username: msg.username });
   if (msg.type === 'PLAYER_LEFT') state.room.players = state.room.players.filter(p => p.username !== msg.username);
   if (msg.type === 'PROBLEM_SELECTED') {
     state.problemId = msg.problemId; state.timeLimitSec = msg.timeLimitSec;
-    if (state.pendingMode !== 'direct') state.animateWinner = msg.problemId;
+    // Only roulette/category picks are hidden-then-revealed via the spinning
+    // reel; direct and variation picks are chosen explicitly by the host and
+    // should just update the selection display immediately.
+    if (state.pendingMode === 'roulette' || state.pendingMode === 'category') state.animateWinner = msg.problemId;
   }
   if (msg.type === 'GAME_START') { state.phase = 'PLAYING'; state.problemId = msg.problemId; state.mirror = {}; }
   if (msg.type === 'TICK') state.remaining = msg.remainingSec;
@@ -61,6 +113,13 @@ function renderLobby() {
     } }, `${p.title} (${p.difficulty}, ${p.timeLimitSec}s)`)));
   } }, 'Direct pick');
 
+  const pickVariation = el('button', { onClick: async () => {
+    const ps = await fetchProblems();
+    mount(reel, ...ps.map(p => el('button', { onClick: () => {
+      state.pendingMode = 'variation'; state.bus.send({ type: 'SELECT_PROBLEM', mode: 'variation', problemId: p.id });
+    } }, `${p.title} (${p.difficulty}, ${p.timeLimitSec}s)`)));
+  } }, 'Pick + random variation');
+
   const spinBtn = el('button', { onClick: async () => {
     const ps = await fetchProblems();
     state.reelPool = ps;
@@ -78,7 +137,7 @@ function renderLobby() {
   } }, 'Category roulette');
 
   mount(app, el('div', { class: 'card wide' }, info,
-    el('div', { class: 'modes' }, pickDirect, spinBtn, catBtn),
+    el('div', { class: 'modes' }, pickDirect, pickVariation, spinBtn, catBtn),
     reel,
     el('p', {}, state.problemId != null ? `Selected problem #${state.problemId} — ${state.timeLimitSec}s` : 'No problem selected'),
     startBtn));
