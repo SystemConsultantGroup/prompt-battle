@@ -77,6 +77,7 @@ export function attachWs(server: http.Server, opts: {
     adminPassword: opts.adminPassword,
     onGradingStart,
     listProblems: () => listProblems(db),
+    onRoomClosed: (code) => genStore.clearRoom(code),
   });
 
   const wss = new WebSocketServer({ server });

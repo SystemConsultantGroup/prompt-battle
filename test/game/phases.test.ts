@@ -55,3 +55,24 @@ test('restart returns to LOBBY and clears prompts', () => {
   assert.equal(m.summary(code).phase, 'LOBBY');
   assert.equal(m.getRoom(code)!.players.get('alice')!.prompt, '');
 });
+
+test('removeRoom clears the running timer and deletes the room', () => {
+  const c = fakeClock();
+  const m = new GameManager({ now: c.now, getProblem: () => problem, scheduler: c.scheduler });
+  const code = m.createRoom({ maxPlayers: 4 });
+  m.selectProblem(code, 1);
+  m.startGame(code, () => {}, () => {});
+  assert.equal(m.getRoom(code)!.timer !== null, true);
+
+  m.removeRoom(code);
+
+  assert.equal(m.getRoom(code), undefined);
+  // Advancing the clock must not invoke any lingering timer callback.
+  assert.doesNotThrow(() => c.advance(1000));
+});
+
+test('removeRoom on an unknown room is a no-op', () => {
+  const c = fakeClock();
+  const m = new GameManager({ now: c.now, getProblem: () => problem, scheduler: c.scheduler });
+  assert.doesNotThrow(() => m.removeRoom('NOPE'));
+});

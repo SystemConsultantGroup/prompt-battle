@@ -68,3 +68,34 @@ test('joining player does not receive their own PLAYER_JOINED broadcast', () => 
   assert.ok(alice.out.some(m => m.type === 'PLAYER_JOINED' && m.username === 'bob'));
   assert.ok(!bob.out.some(m => m.type === 'PLAYER_JOINED'));
 });
+
+test('host disconnect evicts the room: broadcasts ROOM_CLOSED, removes the room, and notifies onRoomClosed', () => {
+  const mgr = new GameManager({ now: () => 0, getProblem: () => undefined });
+  let closedCode: string | undefined;
+  const hub = new Hub(mgr, {
+    accountExists: (u) => u === 'alice' || u === 'bob',
+    adminPassword: 'pw',
+    onGradingStart: () => {},
+    listProblems: () => [],
+    onRoomClosed: (code) => { closedCode = code; },
+  });
+  const mkConn = (): Conn & { out: ServerMsg[] } => {
+    const out: ServerMsg[] = [];
+    return { out, send: (m) => out.push(m), role: null, roomCode: null, username: null };
+  };
+  const host = mkConn();
+  hub.register(host);
+  hub.handle(host, JSON.stringify({ type: 'HOST_AUTH', adminPassword: 'pw' }));
+  const code = host.roomCode!;
+
+  const alice = mkConn();
+  hub.register(alice);
+  hub.handle(alice, JSON.stringify({ type: 'JOIN', roomCode: code, username: 'alice' }));
+  alice.out.length = 0;
+
+  hub.drop(host);
+
+  assert.ok(alice.out.some(m => m.type === 'ROOM_CLOSED'));
+  assert.equal(mgr.getRoom(code), undefined);
+  assert.equal(closedCode, code);
+});

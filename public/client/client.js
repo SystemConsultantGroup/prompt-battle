@@ -7,6 +7,12 @@ const bus = connect(onMsg);
 
 function onMsg(msg) {
   if (msg.type === 'ERROR') { alert(msg.message); return; }
+  if (msg.type === 'ROOM_CLOSED') {
+    alert('Host closed the room');
+    state = { phase: 'JOIN', players: [] };
+    render();
+    return;
+  }
   if (msg.type === 'STATE') { state.phase = msg.room.phase; state.players = msg.room.players; }
   if (msg.type === 'PLAYER_JOINED') state.players.push({ username: msg.username });
   if (msg.type === 'PLAYER_LEFT') state.players = state.players.filter(p => p.username !== msg.username);

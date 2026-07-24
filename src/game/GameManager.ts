@@ -128,4 +128,10 @@ export class GameManager {
     room.phase = 'LOBBY'; room.problemId = null; room.deadline = null;
     for (const p of room.players.values()) p.prompt = '';
   }
+  removeRoom(code: string): void {
+    const room = this.rooms.get(code);
+    if (!room) return;
+    if (room.timer) { this.sched().clearInterval(room.timer); room.timer = null; }
+    this.rooms.delete(code);
+  }
 }

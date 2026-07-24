@@ -44,4 +44,5 @@ export type ServerMsg =
   | { type: 'TICK'; remainingSec: number }
   | { type: 'GAME_END' }
   | { type: 'GRADING_PROGRESS'; done: number; total: number }
-  | { type: 'RESULT'; ranking: PlayerResult[] };
+  | { type: 'RESULT'; ranking: PlayerResult[] }
+  | { type: 'ROOM_CLOSED' };
