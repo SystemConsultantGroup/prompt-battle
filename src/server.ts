@@ -60,6 +60,10 @@ export function attachWs(server: http.Server, opts: {
         onProgress: (done, total) => hub.broadcast(code, { type: 'GRADING_PROGRESS', done, total }),
         storeCode: (genCode) => genStore.put(genCode, code),
       });
+      // The room can be evicted (host disconnect grace) while grading awaits the
+      // LLM. If so, drop the results: players already got ROOM_CLOSED, and the
+      // renders stored during grading would otherwise leak.
+      if (!mgr.getRoom(code)) { genStore.clearRoom(code); return; }
       mgr.setPhase(code, 'RESULT');
       hub.broadcast(code, { type: 'RESULT', ranking: results });
     } catch (err) {
@@ -67,6 +71,7 @@ export function attachWs(server: http.Server, opts: {
       // fire-and-forget from Hub (see src/game/hub.ts), so any throw here
       // would crash the whole process. Log and unstick the room instead.
       console.error('[grading] failed for room', code, err);
+      if (!mgr.getRoom(code)) { genStore.clearRoom(code); return; }
       mgr.setPhase(code, 'RESULT');
       hub.broadcast(code, { type: 'RESULT', ranking: [] });
     }
