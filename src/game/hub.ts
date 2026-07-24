@@ -15,7 +15,12 @@ export type HubDeps = {
   onGradingStart(roomCode: string): void; // Task 17 wires the grading pipeline
   listProblems(): import('../db/index.ts').Problem[];
   onRoomClosed?(roomCode: string): void;
+  /** Grace period (ms) a room survives a host disconnect before eviction. */
+  hostEvictGraceMs?: number;
 };
+
+/** Default grace period before an unreclaimed host's room is evicted. */
+export const HOST_EVICT_GRACE_MS = 45_000;
 
 export class Hub {
   private conns = new Set<Conn>();
@@ -26,12 +31,21 @@ export class Hub {
     this.conns.delete(conn);
     if (conn.role === 'host' && conn.roomCode) {
       const code = conn.roomCode;
-      this.broadcast(code, { type: 'ROOM_CLOSED' });
-      this.mgr.removeRoom(code);
-      this.deps.onRoomClosed?.(code);
+      const graceMs = this.deps.hostEvictGraceMs ?? HOST_EVICT_GRACE_MS;
+      this.mgr.hostDisconnected(code, graceMs, (c) => {
+        this.broadcast(c, { type: 'ROOM_CLOSED' });
+        this.deps.onRoomClosed?.(c);
+      });
       return;
     }
     if (conn.role === 'player' && conn.roomCode && conn.username) {
+      const room = this.mgr.getRoom(conn.roomCode);
+      if (room && room.phase !== 'LOBBY') {
+        // Mid-game drop: keep the slot (and prompt) so the player can
+        // reclaim it via JOIN later; don't tell everyone they left.
+        this.mgr.markDisconnected(conn.roomCode, conn.username);
+        return;
+      }
       this.mgr.removePlayer(conn.roomCode, conn.username);
       this.broadcast(conn.roomCode, { type: 'PLAYER_LEFT', username: conn.username });
     }
@@ -55,6 +69,14 @@ export class Hub {
       if (!constantTimeEqual(msg.adminPassword, this.deps.adminPassword)) {
         conn.send({ type: 'ERROR', message: 'bad admin password' }); return;
       }
+      if (msg.roomCode && this.mgr.getRoom(msg.roomCode)) {
+        // Host reconnect: reclaim the existing room instead of creating a new one.
+        const code = msg.roomCode;
+        conn.role = 'host'; conn.roomCode = code;
+        this.mgr.hostReclaimed(code);
+        conn.send({ type: 'STATE', room: this.mgr.summary(code), role: 'host' });
+        return;
+      }
       const code = this.mgr.createRoom({ maxPlayers: 8 });
       conn.role = 'host'; conn.roomCode = code;
       conn.send({ type: 'STATE', room: this.mgr.summary(code), role: 'host' });
@@ -65,8 +87,13 @@ export class Hub {
         this.deps.accountExists(msg.username));
       if (!res.ok) { conn.send({ type: 'ERROR', message: res.error! }); return; }
       conn.role = 'player'; conn.roomCode = msg.roomCode; conn.username = msg.username;
-      conn.send({ type: 'STATE', room: this.mgr.summary(msg.roomCode), role: 'player' });
-      this.broadcast(msg.roomCode, { type: 'PLAYER_JOINED', username: msg.username }, { except: conn });
+      conn.send({
+        type: 'STATE', room: this.mgr.summary(msg.roomCode), role: 'player',
+        yourPrompt: this.mgr.getPrompt(msg.roomCode, msg.username),
+      });
+      if (!res.reconnected) {
+        this.broadcast(msg.roomCode, { type: 'PLAYER_JOINED', username: msg.username }, { except: conn });
+      }
       return;
     }
     if (conn.role === 'player' && msg.type === 'PROMPT_UPDATE') {

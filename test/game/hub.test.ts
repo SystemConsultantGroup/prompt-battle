@@ -80,8 +80,32 @@ test('joining player does not receive their own PLAYER_JOINED broadcast', () => 
   assert.ok(!bob.out.some(m => m.type === 'PLAYER_JOINED'));
 });
 
-test('host disconnect evicts the room: broadcasts ROOM_CLOSED, removes the room, and notifies onRoomClosed', () => {
-  const mgr = new GameManager({ now: () => 0, getProblem: () => undefined });
+function fakeTimeoutScheduler() {
+  const pending = new Map<number, () => void>();
+  let nextId = 1;
+  return {
+    scheduler: {
+      // interval isn't exercised by these tests, but GameManager's Scheduler
+      // type requires all four members.
+      setInterval: () => { throw new Error('unexpected setInterval'); },
+      clearInterval: () => {},
+      setTimeout: (fn: () => void) => {
+        const id = nextId++;
+        pending.set(id, fn);
+        return id;
+      },
+      clearTimeout: (h: unknown) => { pending.delete(h as number); },
+    },
+    // Fires (and removes) every timer currently pending — mirrors a single
+    // real-timer tick, since a fired one-shot timer never fires again.
+    advance: () => { const fns = [...pending.values()]; pending.clear(); for (const fn of fns) fn(); },
+    pendingCount: () => pending.size,
+  };
+}
+
+test('host disconnect grace: room survives immediately after drop, and is only evicted once the grace timer fires', () => {
+  const clock = fakeTimeoutScheduler();
+  const mgr = new GameManager({ now: () => 0, getProblem: () => undefined, scheduler: clock.scheduler });
   let closedCode: string | undefined;
   const hub = new Hub(mgr, {
     accountExists: (u) => u === 'alice' || u === 'bob',
@@ -89,6 +113,7 @@ test('host disconnect evicts the room: broadcasts ROOM_CLOSED, removes the room,
     onGradingStart: () => {},
     listProblems: () => [],
     onRoomClosed: (code) => { closedCode = code; },
+    hostEvictGraceMs: 5000,
   });
   const mkConn = (): Conn & { out: ServerMsg[] } => {
     const out: ServerMsg[] = [];
@@ -106,7 +131,53 @@ test('host disconnect evicts the room: broadcasts ROOM_CLOSED, removes the room,
 
   hub.drop(host);
 
+  // Grace period just started: room must still be alive, nothing broadcast yet.
+  assert.equal(mgr.getRoom(code) !== undefined, true);
+  assert.ok(!alice.out.some(m => m.type === 'ROOM_CLOSED'));
+  assert.equal(closedCode, undefined);
+
+  clock.advance();
+
   assert.ok(alice.out.some(m => m.type === 'ROOM_CLOSED'));
   assert.equal(mgr.getRoom(code), undefined);
   assert.equal(closedCode, code);
+});
+
+test('host reclaim (HOST_AUTH with roomCode) before the grace timer fires cancels the eviction', () => {
+  const clock = fakeTimeoutScheduler();
+  const mgr = new GameManager({ now: () => 0, getProblem: () => undefined, scheduler: clock.scheduler });
+  let closedCode: string | undefined;
+  const hub = new Hub(mgr, {
+    accountExists: (u) => u === 'alice' || u === 'bob',
+    adminPassword: 'pw',
+    onGradingStart: () => {},
+    listProblems: () => [],
+    onRoomClosed: (code) => { closedCode = code; },
+    hostEvictGraceMs: 5000,
+  });
+  const mkConn = (): Conn & { out: ServerMsg[] } => {
+    const out: ServerMsg[] = [];
+    return { out, send: (m) => out.push(m), role: null, roomCode: null, username: null };
+  };
+  const host = mkConn();
+  hub.register(host);
+  hub.handle(host, JSON.stringify({ type: 'HOST_AUTH', adminPassword: 'pw' }));
+  const code = host.roomCode!;
+
+  hub.drop(host);
+  assert.equal(clock.pendingCount(), 1);
+
+  const rehost = mkConn();
+  hub.register(rehost);
+  hub.handle(rehost, JSON.stringify({ type: 'HOST_AUTH', adminPassword: 'pw', roomCode: code }));
+  assert.equal(rehost.role, 'host');
+  assert.equal(rehost.roomCode, code);
+  assert.equal(clock.pendingCount(), 0);
+
+  // The grace timer was cancelled — even "advancing" it must not evict.
+  clock.advance();
+
+  assert.equal(mgr.getRoom(code) !== undefined, true);
+  assert.equal(closedCode, undefined);
+  assert.ok(!rehost.out.some(m => m.type === 'ROOM_CLOSED'));
 });

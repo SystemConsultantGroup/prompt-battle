@@ -9,6 +9,10 @@ function fakeClock() {
     scheduler: {
       setInterval: (fn: () => void) => { timers.add(fn); return fn as any; },
       clearInterval: (h: any) => { timers.delete(h); },
+      // Not exercised by these tests (no host-eviction grace timer here),
+      // but GameManager's Scheduler type requires the full surface.
+      setTimeout: (_fn: () => void) => null,
+      clearTimeout: (_h: any) => {},
     },
     advance: (ms: number) => { t += ms; for (const fn of timers) fn(); },
   };

@@ -11,7 +11,7 @@ export type PlayerResult = {
   username: string; total: number; basicScore: number; detailScore: number;
   items: ResultItem[]; genToken?: string;
 };
-export type PlayerView = { username: string };
+export type PlayerView = { username: string; connected: boolean };
 
 export type RoomSummary = {
   code: string;
@@ -20,6 +20,7 @@ export type RoomSummary = {
   maxPlayers: number;
   remainingSec: number | null;
   problemId: number | null;
+  deadline: number | null;
 };
 
 // client -> server
@@ -34,7 +35,7 @@ export type ClientMsg =
 
 // server -> client
 export type ServerMsg =
-  | { type: 'STATE'; room: RoomSummary; role: 'host' | 'player' }
+  | { type: 'STATE'; room: RoomSummary; role: 'host' | 'player'; yourPrompt?: string }
   | { type: 'ERROR'; message: string }
   | { type: 'PLAYER_JOINED'; username: string }
   | { type: 'PLAYER_LEFT'; username: string }

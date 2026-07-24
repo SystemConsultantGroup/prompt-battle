@@ -11,7 +11,10 @@ const problem = { id: 1, title: 't', category: 'c', difficulty: 'easy',
 function setup() {
   const timers = new Set<() => void>(); let t = 0;
   const mgr = new GameManager({ now: () => t, getProblem: () => problem,
-    scheduler: { setInterval: (fn) => (timers.add(fn), fn), clearInterval: (h) => timers.delete(h as any) } });
+    scheduler: {
+      setInterval: (fn) => (timers.add(fn), fn), clearInterval: (h) => timers.delete(h as any),
+      setTimeout: (_fn) => null, clearTimeout: (_h) => {},
+    } });
   const hub = new Hub(mgr, { accountExists: () => true, adminPassword: 'pw',
     onGradingStart: () => {}, listProblems: () => [problem] });
   const mk = (): Conn & { out: ServerMsg[] } => {
