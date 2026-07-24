@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Database } from '../db/index.ts';
 import { createAccount, listAccounts, deleteAccount, createProblem, getProblem,
   listProblems, listCategories, deleteProblem, addCriterion, listCriteria } from '../db/index.ts';
+import { constantTimeEqual } from '../util/secure.ts';
 
 async function readBody(req: IncomingMessage): Promise<any> {
   let raw = '';
@@ -18,7 +19,10 @@ export async function handleApi(
 ): Promise<boolean> {
   const url = (req.url ?? '').split('?')[0];
   if (!url.startsWith('/api/')) return false;
-  if (req.headers['x-admin-password'] !== adminPassword) { json(res, 401, { error: 'unauthorized' }); return true; }
+  const providedPassword = req.headers['x-admin-password'];
+  if (typeof providedPassword !== 'string' || !constantTimeEqual(providedPassword, adminPassword)) {
+    json(res, 401, { error: 'unauthorized' }); return true;
+  }
   const method = req.method ?? 'GET';
 
   if (url === '/api/accounts' && method === 'GET') { json(res, 200, listAccounts(db)); return true; }

@@ -1,6 +1,7 @@
 import type { GameManager } from './GameManager.ts';
 import type { ClientMsg, ServerMsg } from './types.ts';
 import { resolveSelection } from './select.ts';
+import { constantTimeEqual } from '../util/secure.ts';
 
 export interface Conn {
   send(msg: ServerMsg): void;
@@ -13,6 +14,7 @@ export type HubDeps = {
   adminPassword: string;
   onGradingStart(roomCode: string): void; // Task 17 wires the grading pipeline
   listProblems(): import('../db/index.ts').Problem[];
+  onRoomClosed?(roomCode: string): void;
 };
 
 export class Hub {
@@ -22,6 +24,13 @@ export class Hub {
   register(conn: Conn) { this.conns.add(conn); }
   drop(conn: Conn) {
     this.conns.delete(conn);
+    if (conn.role === 'host' && conn.roomCode) {
+      const code = conn.roomCode;
+      this.broadcast(code, { type: 'ROOM_CLOSED' });
+      this.mgr.removeRoom(code);
+      this.deps.onRoomClosed?.(code);
+      return;
+    }
     if (conn.role === 'player' && conn.roomCode && conn.username) {
       this.mgr.removePlayer(conn.roomCode, conn.username);
       this.broadcast(conn.roomCode, { type: 'PLAYER_LEFT', username: conn.username });
@@ -43,7 +52,7 @@ export class Hub {
     catch { conn.send({ type: 'ERROR', message: 'bad json' }); return; }
 
     if (msg.type === 'HOST_AUTH') {
-      if (msg.adminPassword !== this.deps.adminPassword) {
+      if (!constantTimeEqual(msg.adminPassword, this.deps.adminPassword)) {
         conn.send({ type: 'ERROR', message: 'bad admin password' }); return;
       }
       const code = this.mgr.createRoom({ maxPlayers: 8 });
