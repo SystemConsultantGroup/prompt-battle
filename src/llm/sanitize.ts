@@ -1,6 +1,8 @@
 import type { GeneratedCode } from '../game/types.ts';
 import type { Criterion } from '../db/index.ts';
 
+// NOTE: the literal word "JSON" here is load-bearing for OpenAIProvider's
+// response_format:json_object mode (it 400s without it). Keep it if you edit.
 export const IMPLEMENT_SYSTEM_PROMPT = [
   'You generate a single self-contained web UI using only HTML, CSS, and',
   'vanilla JavaScript. No external network requests, no <script src>, no',

@@ -26,6 +26,13 @@ test('grade parses verdict JSON', async () => {
   assert.equal(g.items[0].passed, true);
 });
 
+test('grade throws on a malformed verdict (items not an array)', async () => {
+  const p = new OpenAIProvider({ apiKey: 'k', model: 'gpt-4o',
+    fetchImpl: stubFetch('{"result":"good"}') as any });
+  await assert.rejects(() => p.grade({ html: '', css: '', js: '' },
+    [{ id: 1, problemId: 1, kind: 'basic', description: 'x', sortOrder: 0 }]), /bad grade shape/);
+});
+
 test('a non-2xx response throws (surfacing auth/other errors)', async () => {
   const p = new OpenAIProvider({ apiKey: 'bad', model: 'gpt-4o',
     fetchImpl: stubFetch('{}', 401) as any });
