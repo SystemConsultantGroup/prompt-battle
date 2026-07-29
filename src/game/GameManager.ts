@@ -170,9 +170,13 @@ export class GameManager {
     if (room.timer) { this.sched().clearInterval(room.timer); room.timer = null; }
     room.phase = 'GRADING';
   }
-  forceEnd(code: string) {
+  /** End a PLAYING round early. Returns true only if it actually transitioned
+   *  (idempotent): a second call once the room is already GRADING is a no-op,
+   *  so a double-clicked "End now" can't kick off grading twice. */
+  forceEnd(code: string): boolean {
     const room = this.rooms.get(code);
-    if (room && room.phase === 'PLAYING') this.endGame(code);
+    if (room && room.phase === 'PLAYING') { this.endGame(code); return true; }
+    return false;
   }
   setPhase(code: string, phase: Phase) {
     const room = this.rooms.get(code); if (room) room.phase = phase;

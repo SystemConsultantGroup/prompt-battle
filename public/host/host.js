@@ -87,7 +87,7 @@ function onMsg(msg) {
     // should just update the selection display immediately.
     if (state.pendingMode === 'roulette' || state.pendingMode === 'category') state.animateWinner = msg.problemId;
   }
-  if (msg.type === 'GAME_START') { state.phase = 'PLAYING'; state.problemId = msg.problemId; state.mirror = {}; }
+  if (msg.type === 'GAME_START') { state.phase = 'PLAYING'; state.problemId = msg.problemId; state.mirror = {}; state.ending = false; }
   if (msg.type === 'TICK') state.remaining = msg.remainingSec;
   if (msg.type === 'PROMPT_MIRROR') state.mirror[msg.username] = msg.text;
   if (msg.type === 'GAME_END') state.remaining = 0;

@@ -161,9 +161,13 @@ export class Hub {
       return;
     }
     if (msg.type === 'FORCE_END') {
-      this.mgr.forceEnd(code);
-      this.broadcast(code, { type: 'GAME_END' });
-      this.deps.onGradingStart(code);
+      // Only start grading if this call actually ended a live round. A repeated
+      // FORCE_END (host double-clicks "End now" before the screen updates) is a
+      // no-op instead of kicking off another implement+grade pass.
+      if (this.mgr.forceEnd(code)) {
+        this.broadcast(code, { type: 'GAME_END' });
+        this.deps.onGradingStart(code);
+      }
       return;
     }
     if (msg.type === 'RESTART') {

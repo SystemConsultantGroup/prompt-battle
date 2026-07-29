@@ -41,7 +41,7 @@ export function attachWs(server: http.Server, opts: {
   // whichever provider you actually intend to use.
   let provider: LLMProvider;
   if (process.env.OPENAI_API_KEY) {
-    const model = process.env.OPENAI_MODEL ?? 'gpt-4o';
+    const model = process.env.OPENAI_MODEL ?? 'gpt-4o-mini';
     provider = new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY, model });
     console.log(`LLM provider: OpenAI (model ${model})`);
   } else if (process.env.ANTHROPIC_API_KEY) {

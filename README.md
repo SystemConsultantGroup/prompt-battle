@@ -27,7 +27,7 @@ npm run dev                 # 개발 서버 (자동 재시작)  — 또는 npm s
     Player: http://192.168.0.42:3000/client/   ...
 ```
 
-> **LLM 프로바이더**: `.env`에 `OPENAI_API_KEY`가 있으면 **OpenAI**(기본 모델 `gpt-4o`), 없고 `ANTHROPIC_API_KEY`가 있으면 **Claude**, 둘 다 없으면 **FakeProvider**(오프라인·가짜 결과)를 씁니다. 키 형식: OpenAI `sk-...`, Anthropic `sk-ant-...`. 자세히는 [시작하기](docs/getting-started.md#3-환경변수-env).
+> **LLM 프로바이더**: `.env`에 `OPENAI_API_KEY`가 있으면 **OpenAI**(기본 모델 `gpt-4o-mini`), 없고 `ANTHROPIC_API_KEY`가 있으면 **Claude**, 둘 다 없으면 **FakeProvider**(오프라인·가짜 결과)를 씁니다. 키 형식: OpenAI `sk-...`, Anthropic `sk-ant-...`. 자세히는 [시작하기](docs/getting-started.md#3-환경변수-env).
 
 세 진입점: **플레이어** `/client/` · **호스트** `/host/` · **관리자** `/admin/`.
 

@@ -36,7 +36,7 @@ ADMIN_PASSWORD=change-me         # 관리자 콘솔 + 호스트 진입 비밀번
 
 # LLM 프로바이더 — 한쪽 키만 넣으세요. 우선순위: OpenAI → Anthropic → FakeProvider
 OPENAI_API_KEY=sk-...            # OpenAI 키 (sk-... / sk-proj-...)
-OPENAI_MODEL=gpt-4o             # 사용할 OpenAI 모델
+OPENAI_MODEL=gpt-4o-mini        # 사용할 OpenAI 모델 (기본: 저렴한 gpt-4o-mini)
 # ANTHROPIC_API_KEY=sk-ant-...  # Anthropic 키 (sk-ant-...)
 # CLAUDE_MODEL=claude-opus-4-8
 ```
@@ -46,7 +46,7 @@ OPENAI_MODEL=gpt-4o             # 사용할 OpenAI 모델
 | `PORT` | 아니오 (기본 3000) | HTTP/WS 포트 |
 | `ADMIN_PASSWORD` | 권장 (기본 `change-me`) | 관리자 API와 호스트 인증에 공용. **실제 운영 시 반드시 변경** |
 | `OPENAI_API_KEY` | 택1 | OpenAI 구현/채점. 설정 시 **최우선** 사용 (`sk-...`) |
-| `OPENAI_MODEL` | 아니오 (기본 `gpt-4o`) | OpenAI 모델. 키가 접근 가능한 모델로 조정 |
+| `OPENAI_MODEL` | 아니오 (기본 `gpt-4o-mini`) | OpenAI 모델. `max_tokens` 지원 Chat 모델만 (o1/o3 불가) |
 | `ANTHROPIC_API_KEY` | 택1 | Anthropic(Claude) 구현/채점 (`sk-ant-...`) |
 | `CLAUDE_MODEL` | 아니오 (기본 `claude-opus-4-8`) | Claude 모델 |
 | `DB_PATH` | 아니오 (기본 `data/app.sqlite`) | SQLite 파일 경로 |

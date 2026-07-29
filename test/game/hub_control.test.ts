@@ -52,6 +52,33 @@ test('prompt update is ignored outside PLAYING (post-deadline / lobby lock)', ()
   assert.ok(!host.out.some(m => m.type === 'PROMPT_MIRROR'));
 });
 
+test('repeated FORCE_END triggers grading only once (no duplicate generation)', () => {
+  const timers = new Set<() => void>(); let t = 0;
+  const mgr = new GameManager({ now: () => t, getProblem: () => problem,
+    scheduler: {
+      setInterval: (fn) => (timers.add(fn), fn), clearInterval: (h) => timers.delete(h as any),
+      setTimeout: (_fn) => null, clearTimeout: (_h) => {},
+    } });
+  let gradingCalls = 0;
+  const hub = new Hub(mgr, { accountExists: () => true, adminPassword: 'pw',
+    onGradingStart: () => { gradingCalls++; }, listProblems: () => [problem], listVariations: () => [] });
+  const mk = (): Conn & { out: ServerMsg[] } => {
+    const out: ServerMsg[] = [];
+    return { out, send: (m) => out.push(m), role: null, roomCode: null, username: null };
+  };
+  const host = mk(); hub.register(host);
+  hub.handle(host, JSON.stringify({ type: 'HOST_AUTH', adminPassword: 'pw' }));
+  const code = host.roomCode!;
+  hub.handle(host, JSON.stringify({ type: 'SELECT_PROBLEM', mode: 'direct', problemId: 1 }));
+  hub.handle(host, JSON.stringify({ type: 'START' }));
+
+  hub.handle(host, JSON.stringify({ type: 'FORCE_END' }));
+  hub.handle(host, JSON.stringify({ type: 'FORCE_END' }));
+  hub.handle(host, JSON.stringify({ type: 'FORCE_END' }));
+
+  assert.equal(gradingCalls, 1);
+});
+
 test('select + start broadcasts GAME_START', () => {
   const { hub, mk } = setup();
   const host = mk(); hub.register(host);
