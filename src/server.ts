@@ -9,6 +9,7 @@ import { GameManager } from './game/GameManager.ts';
 import { Hub, type Conn } from './game/hub.ts';
 import { gradeRoom } from './grading/pipeline.ts';
 import { ClaudeProvider } from './llm/claude.ts';
+import { OpenAIProvider } from './llm/openai.ts';
 import { FakeProvider } from './llm/fake.ts';
 import type { LLMProvider } from './llm/provider.ts';
 
@@ -35,10 +36,22 @@ export function attachWs(server: http.Server, opts: {
 }) {
   const db = openDb(opts.dbPath);
   const genStore = new GenStore();
-  const provider: LLMProvider = process.env.ANTHROPIC_API_KEY
-    ? new ClaudeProvider({ apiKey: process.env.ANTHROPIC_API_KEY,
-        model: process.env.CLAUDE_MODEL ?? 'claude-opus-4-8' })
-    : (console.warn('No ANTHROPIC_API_KEY — using FakeProvider'), new FakeProvider());
+  // Provider selection: OpenAI takes precedence (its key is OpenAI-format,
+  // sk-...), then Anthropic, else the offline FakeProvider. Set one key only —
+  // whichever provider you actually intend to use.
+  let provider: LLMProvider;
+  if (process.env.OPENAI_API_KEY) {
+    const model = process.env.OPENAI_MODEL ?? 'gpt-4o';
+    provider = new OpenAIProvider({ apiKey: process.env.OPENAI_API_KEY, model });
+    console.log(`LLM provider: OpenAI (model ${model})`);
+  } else if (process.env.ANTHROPIC_API_KEY) {
+    const model = process.env.CLAUDE_MODEL ?? 'claude-opus-4-8';
+    provider = new ClaudeProvider({ apiKey: process.env.ANTHROPIC_API_KEY, model });
+    console.log(`LLM provider: Claude (model ${model})`);
+  } else {
+    console.warn('No OPENAI_API_KEY or ANTHROPIC_API_KEY — using FakeProvider');
+    provider = new FakeProvider();
+  }
 
   const mgr = new GameManager({
     now: () => Date.now(),
@@ -132,6 +145,9 @@ export function makeRouter(db: Database, genStore: GenStore) {
 
 if (import.meta.url === `file://${process.argv[1]}` ||
     process.argv[1]?.endsWith('server.ts')) {
+  // Auto-load .env before reading any process.env values below.
+  const { loadEnv } = await import('./config/env.ts');
+  loadEnv();
   const { mkdirSync } = await import('node:fs');
   mkdirSync('data', { recursive: true });
   const port = Number(process.env.PORT ?? 3000);

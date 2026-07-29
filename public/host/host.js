@@ -10,6 +10,20 @@ let state = { phase: 'AUTH', room: null, mirror: {}, remaining: null, progress: 
 const bus = connect(onMsg, onOpen);
 state.bus = bus;
 
+// Difficulty labels for display (DB stores English identifiers).
+const DIFF_KO = { easy: '쉬움', normal: '보통', hard: '어려움' };
+const diffKo = (d) => DIFF_KO[d] ?? d;
+// Known server error codes → Korean; fall back to the raw message.
+const ERR_KO = {
+  'bad admin password': '관리자 비밀번호가 올바르지 않습니다.',
+  'not host': '호스트만 할 수 있는 동작입니다.',
+  'no problem': '문제를 먼저 선택하세요.',
+  'not in lobby': '로비에서만 할 수 있습니다.',
+  'unknown problem': '존재하지 않는 문제입니다.',
+  'empty pool': '선택할 문제가 없습니다.',
+};
+const koErr = (m) => ERR_KO[m] ?? m;
+
 function storedHost() {
   try {
     const raw = sessionStorage.getItem(HOST_KEY);
@@ -42,12 +56,12 @@ function onMsg(msg) {
       state.phase = 'AUTH';
       render();
     }
-    alert(msg.message);
+    alert(koErr(msg.message));
     return;
   }
   if (msg.type === 'ROOM_CLOSED') {
     clearStoredHost();
-    alert('Room closed');
+    alert('방이 종료되었습니다.');
     state = { phase: 'AUTH', room: null, mirror: {}, remaining: null, progress: null, ranking: null, bus };
     render();
     return;
@@ -83,13 +97,13 @@ function onMsg(msg) {
 }
 
 function renderAuth() {
-  const pw = el('input', { type: 'password', placeholder: 'Admin password' });
+  const pw = el('input', { type: 'password', placeholder: '관리자 비밀번호' });
   return mount(app, el('div', { class: 'card' },
-    el('h1', {}, 'Host'),
+    el('h1', {}, '호스트'),
     pw,
     el('button', {
       onClick: () => { state.pw = pw.value; bus.send({ type: 'HOST_AUTH', adminPassword: pw.value }); },
-    }, 'Enter')));
+    }, '입장')));
 }
 
 async function fetchProblems() {
@@ -99,10 +113,10 @@ async function fetchProblems() {
 
 function renderLobby() {
   const info = el('div', {},
-    el('h2', {}, `Room ${state.room?.code ?? ''}`),
-    el('p', {}, `Players: ${state.room?.players.length ?? 0} — ${(state.room?.players ?? []).map(p => p.username).join(', ')}`));
+    el('h2', {}, `방 ${state.room?.code ?? ''}`),
+    el('p', {}, `참가자: ${state.room?.players.length ?? 0}명 — ${(state.room?.players ?? []).map(p => p.username).join(', ')}`));
   const reel = el('div', { class: 'reel' });
-  const startBtn = el('button', {}, 'Start');
+  const startBtn = el('button', {}, '시작');
   startBtn.disabled = state.problemId == null;
   startBtn.addEventListener('click', () => state.bus.send({ type: 'START' }));
 
@@ -110,22 +124,22 @@ function renderLobby() {
     const ps = await fetchProblems();
     mount(reel, ...ps.map(p => el('button', { onClick: () => {
       state.pendingMode = 'direct'; state.bus.send({ type: 'SELECT_PROBLEM', mode: 'direct', problemId: p.id });
-    } }, `${p.title} (${p.difficulty}, ${p.timeLimitSec}s)`)));
-  } }, 'Direct pick');
+    } }, `${p.title} (${diffKo(p.difficulty)}, ${p.timeLimitSec}초)`)));
+  } }, '직접 선택');
 
   const pickVariation = el('button', { onClick: async () => {
     const ps = await fetchProblems();
     mount(reel, ...ps.map(p => el('button', { onClick: () => {
       state.pendingMode = 'variation'; state.bus.send({ type: 'SELECT_PROBLEM', mode: 'variation', problemId: p.id });
-    } }, `${p.title} (${p.difficulty}, ${p.timeLimitSec}s)`)));
-  } }, 'Pick + random variation');
+    } }, `${p.title} (${diffKo(p.difficulty)}, ${p.timeLimitSec}초)`)));
+  } }, '문제 + 랜덤 변형');
 
   const spinBtn = el('button', { onClick: async () => {
     const ps = await fetchProblems();
     state.reelPool = ps;
     state.pendingMode = 'roulette';
     state.bus.send({ type: 'SELECT_PROBLEM', mode: 'roulette' });
-  } }, 'Roulette');
+  } }, '룰렛');
 
   const catBtn = el('button', { onClick: async () => {
     const cats = await (await fetch('/api/categories', { headers: { 'x-admin-password': state.pw } })).json();
@@ -134,12 +148,12 @@ function renderLobby() {
       state.pendingMode = 'category';
       state.bus.send({ type: 'SELECT_PROBLEM', mode: 'category', category: c });
     } }, c)));
-  } }, 'Category roulette');
+  } }, '카테고리 룰렛');
 
   mount(app, el('div', { class: 'card wide' }, info,
     el('div', { class: 'modes' }, pickDirect, pickVariation, spinBtn, catBtn),
     reel,
-    el('p', {}, state.problemId != null ? `Selected problem #${state.problemId} — ${state.timeLimitSec}s` : 'No problem selected'),
+    el('p', {}, state.problemId != null ? `선택된 문제 #${state.problemId} — ${state.timeLimitSec}초` : '선택된 문제 없음'),
     startBtn));
 
   // if a roulette selection just arrived, animate then reveal
@@ -157,7 +171,7 @@ function render() {
   if (state.phase === 'AUTH') return renderAuth();
   if (state.phase === 'PLAYING') return renderDashboard(app, state);
   if (state.phase === 'GRADING') return mount(app, el('div', { class: 'card' },
-    el('h2', {}, 'Grading…'), el('p', {}, state.progress ? `${state.progress.done}/${state.progress.total}` : '')));
+    el('h2', {}, '채점 중…'), el('p', {}, state.progress ? `${state.progress.done}/${state.progress.total}` : '')));
   if (state.phase === 'RESULT') return handleResults();
   return renderLobby();
 }

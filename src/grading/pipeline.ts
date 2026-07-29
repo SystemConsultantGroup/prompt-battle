@@ -30,7 +30,12 @@ export async function gradeRoom(args: {
       code = await provider.implement(wrapUserPrompt(sub.prompt),
         { systemPrompt: IMPLEMENT_SYSTEM_PROMPT });
       verdict = await provider.grade(code, criteria);
-    } catch {
+    } catch (err) {
+      // Don't swallow silently: an LLM/auth/parse failure here otherwise looks
+      // identical to a legitimate zero score. Log it so misconfig (e.g. a bad
+      // API key) is diagnosable; the player still gets an empty verdict.
+      console.error(`[grading] failed for "${sub.username}":`,
+        err instanceof Error ? err.message : err);
       verdict = { items: [] };
     }
     const genToken = code && args.storeCode ? args.storeCode(code) : undefined;

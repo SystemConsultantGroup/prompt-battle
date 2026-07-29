@@ -6,26 +6,36 @@ import { extractJson } from './extract.ts';
 
 type Opts = { apiKey: string; model: string; fetchImpl?: typeof fetch };
 
-export class ClaudeProvider implements LLMProvider {
+/**
+ * OpenAI-backed provider (Chat Completions API). Shares the prompt-building
+ * and JSON-extraction logic with ClaudeProvider; the only differences are the
+ * endpoint, Bearer auth, and the choices[].message.content response shape.
+ * Requests JSON mode (`response_format: json_object`) so the response is valid
+ * JSON — the prompts already contain the word "JSON", which that mode requires.
+ */
+export class OpenAIProvider implements LLMProvider {
   private f: typeof fetch;
   constructor(private opts: Opts) { this.f = opts.fetchImpl ?? fetch; }
 
   private async call(system: string, user: string): Promise<string> {
-    const res = await this.f('https://api.anthropic.com/v1/messages', {
+    const res = await this.f('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-api-key': this.opts.apiKey,
-        'anthropic-version': '2023-06-01',
+        'authorization': `Bearer ${this.opts.apiKey}`,
       },
       body: JSON.stringify({
         model: this.opts.model, max_tokens: 4096,
-        system, messages: [{ role: 'user', content: user }],
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user },
+        ],
       }),
     });
-    if (!res.ok) throw new Error(`claude ${res.status}`);
-    const data = await res.json() as { content: { type: string; text?: string }[] };
-    return data.content.filter(c => c.type === 'text').map(c => c.text ?? '').join('');
+    if (!res.ok) throw new Error(`openai ${res.status}`);
+    const data = await res.json() as { choices?: { message?: { content?: string } }[] };
+    return data.choices?.[0]?.message?.content ?? '';
   }
 
   async implement(userPrompt: string, c: SystemConstraints): Promise<GeneratedCode> {
