@@ -20,6 +20,7 @@ export type RoomSummary = {
   maxPlayers: number;
   remainingSec: number | null;
   problemId: number | null;
+  activeVariationId: number | null;
   deadline: number | null;
 };
 

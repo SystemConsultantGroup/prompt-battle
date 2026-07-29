@@ -1,7 +1,11 @@
 import type { Phase, RoomSummary } from './types.ts';
 import type { Problem } from '../db/index.ts';
 
-export type PlayerState = { username: string; prompt: string; connected: boolean };
+export type PlayerState = {
+  username: string; prompt: string; connected: boolean;
+  /** Pending abandonment-sweep timer (set while disconnected mid-game). */
+  sweepTimer?: unknown | null;
+};
 export type Scheduler = {
   setInterval(fn: () => void, ms: number): unknown;
   clearInterval(handle: unknown): void;
@@ -62,6 +66,10 @@ export class GameManager {
     if (existing) {
       if (existing.connected) return { ok: false, error: 'name in use' };
       existing.connected = true;
+      if (existing.sweepTimer) {
+        this.sched().clearTimeout(existing.sweepTimer);
+        existing.sweepTimer = null;
+      }
       return { ok: true, reconnected: true };
     }
     if (room.phase !== 'LOBBY') return { ok: false, error: 'game in progress' };
@@ -72,9 +80,32 @@ export class GameManager {
   removePlayer(code: string, username: string): void {
     this.rooms.get(code)?.players.delete(username);
   }
-  markDisconnected(code: string, username: string): void {
-    const p = this.rooms.get(code)?.players.get(username);
-    if (p) p.connected = false;
+  /**
+   * Flip a player to disconnected. When `opts` is given, also schedule an
+   * abandonment sweep: if they don't reconnect within `graceMs`, drop the
+   * slot entirely and invoke `onSweep`. Reconnecting cancels the sweep (see
+   * `joinPlayer`). The 2-arg form is a plain flag flip with no timer.
+   */
+  markDisconnected(
+    code: string, username: string,
+    opts?: { graceMs: number; onSweep: (code: string, username: string) => void },
+  ): void {
+    const room = this.rooms.get(code);
+    const p = room?.players.get(username);
+    if (!p || !room) return;
+    p.connected = false;
+    if (!opts) return;
+    if (p.sweepTimer) this.sched().clearTimeout(p.sweepTimer);
+    p.sweepTimer = this.sched().setTimeout(() => {
+      // The real reconnect path (joinPlayer) already cancels this timer; the
+      // guard is belt-and-suspenders. Clear our handle either way so no stale
+      // reference lingers on a slot that survives.
+      const pl = room.players.get(username);
+      if (!pl || pl.connected) { if (pl) pl.sweepTimer = null; return; }
+      pl.sweepTimer = null;
+      room.players.delete(username);
+      opts.onSweep(code, username);
+    }, opts.graceMs);
   }
   getPrompt(code: string, username: string): string {
     return this.rooms.get(code)?.players.get(username)?.prompt ?? '';
@@ -92,6 +123,7 @@ export class GameManager {
       maxPlayers: room.maxPlayers,
       remainingSec,
       problemId: room.problemId,
+      activeVariationId: room.activeVariationId,
       deadline: room.deadline,
     };
   }
@@ -157,6 +189,9 @@ export class GameManager {
     if (!room) return;
     if (room.timer) { this.sched().clearInterval(room.timer); room.timer = null; }
     if (room.evictTimer) { this.sched().clearTimeout(room.evictTimer); room.evictTimer = null; }
+    for (const p of room.players.values()) {
+      if (p.sweepTimer) { this.sched().clearTimeout(p.sweepTimer); p.sweepTimer = null; }
+    }
     this.rooms.delete(code);
   }
 
