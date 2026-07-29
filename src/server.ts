@@ -132,6 +132,9 @@ export function makeRouter(db: Database, genStore: GenStore) {
 
 if (import.meta.url === `file://${process.argv[1]}` ||
     process.argv[1]?.endsWith('server.ts')) {
+  // Auto-load .env before reading any process.env values below.
+  const { loadEnv } = await import('./config/env.ts');
+  loadEnv();
   const { mkdirSync } = await import('node:fs');
   mkdirSync('data', { recursive: true });
   const port = Number(process.env.PORT ?? 3000);
