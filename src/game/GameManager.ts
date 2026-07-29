@@ -97,8 +97,11 @@ export class GameManager {
     if (!opts) return;
     if (p.sweepTimer) this.sched().clearTimeout(p.sweepTimer);
     p.sweepTimer = this.sched().setTimeout(() => {
-      const pl = this.rooms.get(code)?.players.get(username);
-      if (!pl || pl.connected) return; // reconnected in the meantime
+      // The real reconnect path (joinPlayer) already cancels this timer; the
+      // guard is belt-and-suspenders. Clear our handle either way so no stale
+      // reference lingers on a slot that survives.
+      const pl = room.players.get(username);
+      if (!pl || pl.connected) { if (pl) pl.sweepTimer = null; return; }
       pl.sweepTimer = null;
       room.players.delete(username);
       opts.onSweep(code, username);
