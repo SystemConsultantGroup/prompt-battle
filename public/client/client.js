@@ -6,6 +6,18 @@ const app = document.getElementById('app');
 let state = { phase: 'JOIN', players: [], promptText: '', variationId: null };
 const bus = connect(onMsg, onOpen);
 
+// Map known server error codes (English) to Korean for display; fall back to
+// the raw message so unmapped errors are still shown.
+const ERR_KO = {
+  'unknown room': '존재하지 않는 방입니다.',
+  'unknown account': '등록되지 않은 이름입니다.',
+  'name in use': '이미 사용 중인 이름입니다.',
+  'game in progress': '게임이 이미 진행 중입니다.',
+  'room full': '방이 가득 찼습니다.',
+  'bad json': '잘못된 요청입니다.',
+};
+const koErr = (m) => ERR_KO[m] ?? m;
+
 function storedJoin() {
   try {
     const raw = sessionStorage.getItem(JOIN_KEY);
@@ -27,7 +39,7 @@ function onMsg(msg) {
     // (evicted room, name taken, game already running), drop it and
     // fall back to a manual JOIN screen instead of retrying forever.
     clearStoredJoin();
-    alert(msg.message);
+    alert(koErr(msg.message));
     state = { phase: 'JOIN', players: [], promptText: '', variationId: null };
     currentScreen = null;
     render();
@@ -35,7 +47,7 @@ function onMsg(msg) {
   }
   if (msg.type === 'ROOM_CLOSED') {
     clearStoredJoin();
-    alert('The host closed the room');
+    alert('호스트가 방을 닫았습니다.');
     state = { phase: 'JOIN', players: [], promptText: '', variationId: null };
     currentScreen = null;
     render();
@@ -86,8 +98,8 @@ function render() {
   if (target === 'RESULT') return renderResult();
 }
 function renderJoin() {
-  const code = el('input', { placeholder: 'Room code' });
-  const name = el('input', { placeholder: 'Your name' });
+  const code = el('input', { placeholder: '방 코드' });
+  const name = el('input', { placeholder: '이름' });
   mount(app, el('div', { class: 'card' },
     el('h1', {}, 'Prompt Battle'),
     code, name,
@@ -97,11 +109,11 @@ function renderJoin() {
       try { sessionStorage.setItem(JOIN_KEY, JSON.stringify({ roomCode, username })); } catch { /* ignore */ }
       bus.send({ type: 'JOIN', roomCode, username });
       state.phase = 'LOBBY';
-    } }, 'Join')));
+    } }, '입장')));
 }
 function renderLobby() {
   mount(app, el('div', { class: 'card' },
-    el('h2', {}, 'Waiting for host…'),
+    el('h2', {}, '호스트를 기다리는 중…'),
     el('ul', {}, ...state.players.map(p => el('li', {}, p.username)))));
 }
 let debounce;
@@ -112,7 +124,7 @@ function renderEditor() {
     ? `/render/variation/${state.variationId}`
     : `/render/target/${state.problemId}`;
   const frame = el('iframe', { class: 'target', src: targetSrc, sandbox: 'allow-scripts' });
-  const ta = el('textarea', { class: 'prompt', placeholder: 'Describe the UI to build…' });
+  const ta = el('textarea', { class: 'prompt', placeholder: '만들 UI를 설명하세요…' });
   ta.value = state.promptText ?? '';
   ta.disabled = !!state.locked;
   ta.addEventListener('input', () => {
@@ -120,26 +132,26 @@ function renderEditor() {
     clearTimeout(debounce);
     debounce = setTimeout(() => bus.send({ type: 'PROMPT_UPDATE', text: ta.value }), 300);
   });
-  const timer = el('div', { class: 'timer' }, state.remaining == null ? '…' : `${state.remaining}s`);
+  const timer = el('div', { class: 'timer' }, state.remaining == null ? '…' : `${state.remaining}초`);
   editorTimerEl = timer;
   editorTextareaEl = ta;
   mount(app, el('div', { class: 'play' },
-    el('div', { class: 'goal' }, el('h3', {}, 'Goal'), frame),
+    el('div', { class: 'goal' }, el('h3', {}, '목표'), frame),
     el('div', { class: 'work' }, timer, ta)));
 }
 // PLAYING is already mounted (e.g. TICK/GAME_END arrived) — patch only the
 // mutable bits in place so the textarea/iframe are never destroyed.
 function updateEditor() {
-  if (editorTimerEl) editorTimerEl.textContent = state.remaining == null ? '…' : `${state.remaining}s`;
+  if (editorTimerEl) editorTimerEl.textContent = state.remaining == null ? '…' : `${state.remaining}초`;
   if (editorTextareaEl) editorTextareaEl.disabled = !!state.locked;
 }
 function renderGrading() {
   const p = state.progress;
-  mount(app, el('div', { class: 'card' }, el('h2', {}, 'Grading…'),
+  mount(app, el('div', { class: 'card' }, el('h2', {}, '채점 중…'),
     el('p', {}, p ? `${p.done}/${p.total}` : '')));
 }
 function renderResult() {
-  mount(app, el('div', { class: 'card' }, el('h2', {}, 'Results'),
+  mount(app, el('div', { class: 'card' }, el('h2', {}, '결과'),
     el('ol', {}, ...(state.ranking ?? []).map(r =>
       el('li', {}, `${r.username} — ${Math.round(r.total * 100)}%`)))));
 }
