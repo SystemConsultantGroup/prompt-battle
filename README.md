@@ -27,7 +27,7 @@ npm run dev                 # 개발 서버 (자동 재시작)  — 또는 npm s
     Player: http://192.168.0.42:3000/client/   ...
 ```
 
-> `ANTHROPIC_API_KEY`가 없어도 됩니다 — `FakeProvider`로 폴백해 전체 흐름을 시험할 수 있습니다. 실제 구현/채점 품질을 보려면 키를 넣으세요.
+> **LLM 프로바이더**: `.env`에 `OPENAI_API_KEY`가 있으면 **OpenAI**(기본 모델 `gpt-4o`), 없고 `ANTHROPIC_API_KEY`가 있으면 **Claude**, 둘 다 없으면 **FakeProvider**(오프라인·가짜 결과)를 씁니다. 키 형식: OpenAI `sk-...`, Anthropic `sk-ant-...`. 자세히는 [시작하기](docs/getting-started.md#3-환경변수-env).
 
 세 진입점: **플레이어** `/client/` · **호스트** `/host/` · **관리자** `/admin/`.
 
@@ -52,7 +52,7 @@ Node 서버 (단일 프로세스)
   WS(ws)      방/실시간 동기화 (로비·타이핑 미러·게임 상태 브로드캐스트)
   GameManager 인메모리 방 상태 + 서버 타이머 (권위 상태, 재접속·유예·슬롯 정리)
   SQLite      문제·바리에이션·채점기준·계정 (node:sqlite)
-  LLMProvider 인터페이스 → ClaudeProvider / FakeProvider
+  LLMProvider 인터페이스 → OpenAIProvider / ClaudeProvider / FakeProvider
   grading     implement → grade → 결정적 점수/등수 산출
 ```
 
@@ -67,7 +67,7 @@ src/
   http/              정적 서빙, 샌드박스 렌더(renderDoc/GenStore), LAN 배너
   game/              types, GameManager(방·phase·타이머·재접속·슬롯 정리), hub(WS 라우팅), select(문제 선택)
   db/                schema.sql + node:sqlite 접근 계층
-  llm/               LLMProvider 인터페이스, ClaudeProvider, FakeProvider, 프롬프트 새니타이즈
+  llm/               LLMProvider 인터페이스, OpenAIProvider, ClaudeProvider, FakeProvider, 프롬프트 새니타이즈
   grading/           채점 파이프라인 + 결정적 점수 계산
   admin/             계정·문제·바리에이션 CRUD REST
   util/              상수시간 비교 등

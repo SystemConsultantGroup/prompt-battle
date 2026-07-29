@@ -33,19 +33,27 @@ cp .env.example .env
 ```dotenv
 PORT=3000                        # 서버 포트
 ADMIN_PASSWORD=change-me         # 관리자 콘솔 + 호스트 진입 비밀번호
-ANTHROPIC_API_KEY=sk-ant-...     # 없으면 FakeProvider로 폴백 (아래 참고)
-CLAUDE_MODEL=claude-opus-4-8     # 사용할 Claude 모델
+
+# LLM 프로바이더 — 한쪽 키만 넣으세요. 우선순위: OpenAI → Anthropic → FakeProvider
+OPENAI_API_KEY=sk-...            # OpenAI 키 (sk-... / sk-proj-...)
+OPENAI_MODEL=gpt-4o             # 사용할 OpenAI 모델
+# ANTHROPIC_API_KEY=sk-ant-...  # Anthropic 키 (sk-ant-...)
+# CLAUDE_MODEL=claude-opus-4-8
 ```
 
 | 변수 | 필수 | 설명 |
 |---|---|---|
 | `PORT` | 아니오 (기본 3000) | HTTP/WS 포트 |
 | `ADMIN_PASSWORD` | 권장 (기본 `change-me`) | 관리자 API와 호스트 인증에 공용. **실제 운영 시 반드시 변경** |
-| `ANTHROPIC_API_KEY` | 아니오 | 실제 AI 구현/채점에 필요. 없으면 가짜 응답으로 흐름만 시험 |
-| `CLAUDE_MODEL` | 아니오 (기본 `claude-opus-4-8`) | 구현/채점에 쓸 모델 |
+| `OPENAI_API_KEY` | 택1 | OpenAI 구현/채점. 설정 시 **최우선** 사용 (`sk-...`) |
+| `OPENAI_MODEL` | 아니오 (기본 `gpt-4o`) | OpenAI 모델. 키가 접근 가능한 모델로 조정 |
+| `ANTHROPIC_API_KEY` | 택1 | Anthropic(Claude) 구현/채점 (`sk-ant-...`) |
+| `CLAUDE_MODEL` | 아니오 (기본 `claude-opus-4-8`) | Claude 모델 |
 | `DB_PATH` | 아니오 (기본 `data/app.sqlite`) | SQLite 파일 경로 |
 
-> **API 키 없이도 동작합니다.** `ANTHROPIC_API_KEY`가 없으면 서버가 `FakeProvider`로 폴백해 전체 흐름(구현·채점·결과)을 검증할 수 있습니다. 실제 UI 구현/채점 품질을 보려면 키를 넣으세요. 서버 시작 시 `No ANTHROPIC_API_KEY — using FakeProvider` 경고가 출력됩니다.
+> **프로바이더 선택**: 서버는 `OPENAI_API_KEY`가 있으면 **OpenAI**, 없고 `ANTHROPIC_API_KEY`가 있으면 **Claude**, 둘 다 없으면 **FakeProvider**(오프라인·가짜 결과)를 씁니다. 시작 시 `LLM provider: OpenAI (model gpt-4o)` 처럼 어떤 프로바이더를 쓰는지 로그에 찍힙니다.
+>
+> **키 형식 주의**: OpenAI 키는 `sk-...`/`sk-proj-...`, Anthropic 키는 `sk-ant-...` 입니다. 서로 다른 슬롯에 넣으면 인증 실패(401)합니다. 키 없이 흐름만 보려면 두 키를 모두 비우면 됩니다.
 
 ## 4. 문제 시드
 
