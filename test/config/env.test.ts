@@ -22,3 +22,10 @@ test('loadEnv is a no-op returning false when the file is absent', () => {
   const p = join(tmpdir(), `pb-env-missing-${process.pid}.env`);
   assert.equal(loadEnv(p), false);
 });
+
+test('loadEnv does not throw on an unreadable/invalid path; returns false', () => {
+  // A directory exists but cannot be parsed as a .env — must warn+continue,
+  // never crash server boot.
+  assert.doesNotThrow(() => loadEnv(tmpdir()));
+  assert.equal(loadEnv(tmpdir()), false);
+});
