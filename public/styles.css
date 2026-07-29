@@ -24,6 +24,7 @@ li { padding: 8px; background: #232945; border-radius: 6px; margin: 4px 0; }
 
 /* Host dashboard — fixed fit; player-card grid scrolls within its region */
 .dash { display: flex; flex-direction: column; height: 100dvh; padding: 16px; gap: 8px; }
+.dash .timer { margin-bottom: 0; }
 .dash > button { width: auto; align-self: center; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;
   flex: 1; min-height: 0; overflow-y: auto; align-content: start; }

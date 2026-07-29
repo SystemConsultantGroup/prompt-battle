@@ -42,6 +42,13 @@ test('resolveFile returns null for a missing path', () => {
   assert.equal(resolveFile(PUBLIC_ROOT, '/does/not/exist'), null);
 });
 
+test('resolveFile returns null for a directory without index.html (never a dir path)', () => {
+  // public/shared/ holds dom.js/ws.js but no index.html — must not resolve to
+  // the directory itself (which serveStatic would then try to stream).
+  assert.equal(resolveFile(PUBLIC_ROOT, '/shared'), null);
+  assert.equal(resolveFile(PUBLIC_ROOT, '/shared/'), null);
+});
+
 test('resolveFile rejects traversal', () => {
   assert.equal(resolveFile(PUBLIC_ROOT, '/../secret'), null);
 });

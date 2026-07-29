@@ -34,8 +34,9 @@ export function resolveFile(root: string, urlPath: string): string | null {
     return existsSync(index) && statSync(index).isFile() ? index : null;
   }
   if (existsSync(candidate)) {
-    if (statSync(candidate).isFile()) return candidate;
-    if (statSync(candidate).isDirectory()) {
+    const st = statSync(candidate);
+    if (st.isFile()) return candidate;
+    if (st.isDirectory()) {
       const index = join(candidate, 'index.html');
       return existsSync(index) && statSync(index).isFile() ? index : null;
     }
