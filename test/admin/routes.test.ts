@@ -152,6 +152,54 @@ test('POST /api/problems/:id/variations creates a variation and GET /api/problem
   assert.equal(p.variations[0].label, 'dark');
 });
 
+test('POST /api/problems/:id/variations with fromBase seeds code from the base problem', async () => {
+  const db = openDb(':memory:');
+  let r = mockReqRes('POST', '/api/problems', {
+    problem: { title: 'T', category: 'ui', difficulty: 'easy', timeLimitSec: 60,
+      targetHtml: '<button>Go</button>', targetCss: 'button{color:red}', targetJs: 'x=1',
+      detailWeight: 0.3 },
+    criteria: [],
+  });
+  await handleApi(db, 'pw', r.req, r.res);
+  const { id } = JSON.parse(r.res.body);
+
+  // Only a label + fromBase flag — code should be copied from the base.
+  r = mockReqRes('POST', `/api/problems/${id}/variations`, { label: 'copy', fromBase: true });
+  await handleApi(db, 'pw', r.req, r.res);
+  assert.equal(r.res.code, 200);
+
+  r = mockReqRes('GET', `/api/problems/${id}`);
+  await handleApi(db, 'pw', r.req, r.res);
+  const p = JSON.parse(r.res.body);
+  const v = p.variations.find((x: any) => x.label === 'copy');
+  assert.ok(v);
+  assert.equal(v.targetHtml, '<button>Go</button>');
+  assert.equal(v.targetCss, 'button{color:red}');
+  assert.equal(v.targetJs, 'x=1');
+});
+
+test('fromBase does not override explicitly provided variation code', async () => {
+  const db = openDb(':memory:');
+  let r = mockReqRes('POST', '/api/problems', {
+    problem: { title: 'T', category: 'ui', difficulty: 'easy', timeLimitSec: 60,
+      targetHtml: '<base>', targetCss: 'base{}', targetJs: 'base', detailWeight: 0.3 },
+    criteria: [],
+  });
+  await handleApi(db, 'pw', r.req, r.res);
+  const { id } = JSON.parse(r.res.body);
+
+  r = mockReqRes('POST', `/api/problems/${id}/variations`,
+    { label: 'mixed', fromBase: true, targetHtml: '<override>' });
+  await handleApi(db, 'pw', r.req, r.res);
+
+  r = mockReqRes('GET', `/api/problems/${id}`);
+  await handleApi(db, 'pw', r.req, r.res);
+  const p = JSON.parse(r.res.body);
+  const v = p.variations.find((x: any) => x.label === 'mixed');
+  assert.equal(v.targetHtml, '<override>'); // explicit wins
+  assert.equal(v.targetCss, 'base{}');      // unspecified falls back to base
+});
+
 test('POST /api/problems/:id/variations on a non-existent problem returns 404', async () => {
   const db = openDb(':memory:');
   const r = mockReqRes('POST', '/api/problems/999/variations', {

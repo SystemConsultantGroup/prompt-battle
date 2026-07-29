@@ -59,9 +59,9 @@ async function renderConsole() {
   let editId = null;
   const formHeading = el('h2', {}, 'New problem');
   const variationsBox = el('div', { class: 'variations-box' });
-  renderVariationsBox(null, []);
+  renderVariationsBox(null, [], null);
 
-  function renderVariationsBox(id, variations) {
+  function renderVariationsBox(id, variations, base) {
     variationsBox.replaceChildren();
     if (id === null) {
       variationsBox.append(el('p', { class: 'hint' }, 'Save the problem first to add variations'));
@@ -78,6 +78,13 @@ async function renderConsole() {
       css: el('textarea', { placeholder: 'variation target CSS' }),
       js: el('textarea', { placeholder: 'variation target JS' }),
     };
+    // Copy the base problem's code into the form so the admin edits a copy
+    // rather than authoring a variation from a blank slate.
+    const prefillBtn = el('button', { onClick: () => {
+      vf.html.value = base?.targetHtml ?? '';
+      vf.css.value = base?.targetCss ?? '';
+      vf.js.value = base?.targetJs ?? '';
+    } }, 'Prefill from base');
     const addVariationBtn = el('button', { onClick: async () => {
       await api(`/api/problems/${id}/variations`, {
         method: 'POST',
@@ -88,7 +95,7 @@ async function renderConsole() {
     variationsBox.append(
       el('h3', {}, 'Variations'), list,
       el('h4', {}, 'Add variation'),
-      vf.label, vf.html, vf.css, vf.js, addVariationBtn);
+      vf.label, prefillBtn, vf.html, vf.css, vf.js, addVariationBtn);
   }
   const submitBtn = el('button', { onClick: async () => {
     const body = {
@@ -126,7 +133,7 @@ async function renderConsole() {
     formHeading.textContent = `Edit problem #${id}`;
     submitBtn.textContent = 'Update problem';
     cancelEditBtn.style.display = '';
-    renderVariationsBox(id, p.variations ?? []);
+    renderVariationsBox(id, p.variations ?? [], p);
   }
 
   const problemsPanel = el('div', { class: 'card' }, formHeading,

@@ -66,11 +66,19 @@ export async function handleApi(
   m = url.match(/^\/api\/problems\/(\d+)\/variations$/);
   if (m && method === 'POST') {
     const problemId = Number(m[1]);
-    if (!getProblem(db, problemId)) { json(res, 404, { error: 'not found' }); return true; }
+    const base = getProblem(db, problemId);
+    if (!base) { json(res, 404, { error: 'not found' }); return true; }
     const b = await readBody(req);
+    // `fromBase` seeds the variation's code from the base problem so the admin
+    // edits a copy instead of authoring from scratch; any field explicitly
+    // provided in the body still wins over the base value.
+    const seed = b.fromBase ? base : { targetHtml: '', targetCss: '', targetJs: '' };
     const id = addVariation(db, {
-      problemId, label: b.label, targetHtml: b.targetHtml,
-      targetCss: b.targetCss, targetJs: b.targetJs, sortOrder: b.sortOrder ?? 0,
+      problemId, label: b.label,
+      targetHtml: b.targetHtml ?? seed.targetHtml,
+      targetCss: b.targetCss ?? seed.targetCss,
+      targetJs: b.targetJs ?? seed.targetJs,
+      sortOrder: b.sortOrder ?? 0,
     });
     json(res, 200, { id }); return true;
   }
