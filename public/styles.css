@@ -1,23 +1,44 @@
 * { box-sizing: border-box; }
-body { font-family: system-ui, sans-serif; margin: 0; background: #0f1220; color: #e8e8f0; }
+html, body { height: 100%; }
+body {
+  font-family: system-ui, sans-serif; margin: 0; min-height: 100dvh;
+  background: #0f1220; color: #e8e8f0;
+}
+input, button, textarea, select { font-family: inherit; }
+
+/* Centered cards: join / lobby / roulette */
 .card { max-width: 480px; margin: 8vh auto; padding: 24px; background: #1a1f36; border-radius: 12px; }
+.card.wide { max-width: 900px; }
 input, button { display: block; width: 100%; margin: 8px 0; padding: 12px; border-radius: 8px; border: 0; font-size: 16px; }
 button { background: #5b7cfa; color: white; cursor: pointer; }
 ul { list-style: none; padding: 0; }
 li { padding: 8px; background: #232945; border-radius: 6px; margin: 4px 0; }
-.play { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: 100vh; padding: 16px; }
+
+/* Player editor — app-like fixed fit (fills viewport, panes flex to fill) */
+.play { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: 100dvh; padding: 16px; }
 .goal, .work { display: flex; flex-direction: column; min-height: 0; }
-.target { flex: 1; border: 0; border-radius: 8px; background: white; }
-.prompt { flex: 1; resize: none; font-size: 15px; padding: 12px; border-radius: 8px; border: 0; }
+.goal h3 { margin: 0 0 8px; }
+.target { flex: 1; min-height: 0; border: 0; border-radius: 8px; background: white; }
+.prompt { flex: 1; min-height: 0; resize: none; font-size: 15px; padding: 12px; border-radius: 8px; border: 0; }
 .timer { font-size: 28px; font-weight: 700; text-align: center; margin-bottom: 8px; }
-.dash { padding: 16px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+
+/* Host dashboard — fixed fit; player-card grid scrolls within its region */
+.dash { display: flex; flex-direction: column; height: 100dvh; padding: 16px; gap: 8px; }
+.dash > button { width: auto; align-self: center; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;
+  flex: 1; min-height: 0; overflow-y: auto; align-content: start; }
 .pcard { background: #1a1f36; border-radius: 8px; padding: 12px; }
 .pcard.disconnected { opacity: 0.5; }
 .pname { font-weight: 700; margin-bottom: 6px; }
 .ptext { white-space: pre-wrap; word-break: break-word; font-size: 13px; color: #b9c0e0; max-height: 160px; overflow: auto; }
-.results-wrap { max-width: 720px; margin: 4vh auto; }
-.result { background: #1a1f36; border-radius: 10px; padding: 16px; margin: 10px 0; }
+
+/* Results — fixed fit; cards laid out horizontally, row scrolls sideways */
+.results-wrap { display: flex; flex-direction: column; height: 100dvh; padding: 16px; gap: 12px; }
+.results-wrap h2 { margin: 0; }
+.results-wrap > button { width: auto; align-self: center; }
+.results-row { display: flex; gap: 12px; flex: 1; min-height: 0; overflow-x: auto; overflow-y: hidden; padding-bottom: 8px; }
+.result { background: #1a1f36; border-radius: 10px; padding: 16px; display: flex; flex-direction: column;
+  min-width: 300px; max-width: 340px; overflow-y: auto; }
 .rhead { display: flex; gap: 12px; align-items: baseline; font-size: 18px; }
 .rank { font-weight: 800; color: #5b7cfa; }
 .rtotal { margin-left: auto; font-weight: 800; }
@@ -25,16 +46,19 @@ li { padding: 8px; background: #232945; border-radius: 6px; margin: 4px 0; }
 .ritems { font-size: 13px; }
 .ritems li.ok { color: #7ee0a0; }
 .ritems li.no { color: #e08a8a; }
-.result-frame { width: 100%; height: 220px; border: 0; border-radius: 8px; background: white; margin-top: 10px; }
-.card.wide { max-width: 900px; }
-.modes { display: flex; gap: 8px; }
+.result-frame { width: 100%; height: 200px; flex-shrink: 0; border: 0; border-radius: 8px; background: white; margin-top: 10px; }
+
+/* Host lobby: mode buttons + roulette reel */
+.modes { display: flex; gap: 8px; flex-wrap: wrap; }
 .modes button { width: auto; }
 .reel { overflow: hidden; height: 90px; margin: 12px 0; border-radius: 8px; background: #11152b; }
 .reel-strip { display: flex; gap: 20px; padding: 20px; will-change: transform; }
 .reel-card { min-width: 160px; height: 50px; display: flex; align-items: center; justify-content: center;
   background: #232945; border-radius: 8px; padding: 0 12px; }
 .reel-win { outline: 3px solid #5b7cfa; }
-.admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 1100px; margin: 4vh auto; align-items: start; }
+
+/* Admin console — two columns; vertical page scroll is allowed */
+.admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 1100px; margin: 4vh auto; padding: 0 16px; align-items: start; }
 textarea { width: 100%; min-height: 80px; margin: 8px 0; padding: 10px; border-radius: 8px; border: 0; font-family: monospace; }
 select { padding: 10px; border-radius: 8px; border: 0; }
 .crit-row { display: flex; gap: 8px; margin: 6px 0; }
@@ -43,3 +67,11 @@ select { padding: 10px; border-radius: 8px; border: 0; }
 .variations-box .hint { color: #9aa2c8; font-size: 13px; margin: 0; }
 .variations-box li { display: flex; align-items: center; gap: 8px; }
 .variations-box li button { width: auto; margin-left: auto; }
+
+/* Narrow-window safety net (desktop-first; this is a graceful fallback) */
+@media (max-width: 720px) {
+  .play { grid-template-columns: 1fr; height: auto; min-height: 100dvh; }
+  .play .goal, .play .work { min-height: 55dvh; }
+  .admin-grid { grid-template-columns: 1fr; }
+  .result { min-width: 240px; }
+}

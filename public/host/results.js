@@ -18,6 +18,6 @@ export function renderResults(app, state) {
   });
   mount(app, el('div', { class: 'results-wrap' },
     el('h2', {}, 'Final Ranking'),
-    ...rows,
+    el('div', { class: 'results-row' }, ...rows),
     el('button', { onClick: () => state.bus.send({ type: 'RESTART' }) }, 'Restart')));
 }

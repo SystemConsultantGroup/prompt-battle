@@ -22,7 +22,7 @@ test('startupBanner always lists localhost entry points', () => {
   const b = startupBanner(3000, []);
   assert.match(b, /localhost:3000\/client\//);
   assert.match(b, /localhost:3000\/host\//);
-  assert.match(b, /localhost:3000\/admin\/index\.html/);
+  assert.match(b, /localhost:3000\/admin\//);
   assert.ok(!b.includes('LAN'));
 });
 

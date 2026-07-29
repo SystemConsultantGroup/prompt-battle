@@ -22,14 +22,14 @@ npm run dev                 # 개발 서버 (자동 재시작)  — 또는 npm s
   Local (this machine):
     Player: http://localhost:3000/client/
     Host:   http://localhost:3000/host/
-    Admin:  http://localhost:3000/admin/index.html
+    Admin:  http://localhost:3000/admin/
   LAN (same-network devices — share these):
     Player: http://192.168.0.42:3000/client/   ...
 ```
 
 > `ANTHROPIC_API_KEY`가 없어도 됩니다 — `FakeProvider`로 폴백해 전체 흐름을 시험할 수 있습니다. 실제 구현/채점 품질을 보려면 키를 넣으세요.
 
-세 진입점: **플레이어** `/client/` · **호스트** `/host/` · **관리자** `/admin/index.html`.
+세 진입점: **플레이어** `/client/` · **호스트** `/host/` · **관리자** `/admin/`.
 
 ## 문서
 
