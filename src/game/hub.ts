@@ -19,12 +19,21 @@ export type HubDeps = {
   onRoomClosed?(roomCode: string): void;
   /** Grace period (ms) a room survives a host disconnect before eviction. */
   hostEvictGraceMs?: number;
+  /** Grace period (ms) a disconnected player's slot survives before it's swept. */
+  playerSweepGraceMs?: number;
   /** Injectable RNG for server-authoritative variation selection (tests). */
   rng?(): number;
 };
 
 /** Default grace period before an unreclaimed host's room is evicted. */
 export const HOST_EVICT_GRACE_MS = 45_000;
+
+/**
+ * Default grace period before a disconnected player's slot is swept. Longer
+ * than the host grace: a player refresh/network blip should comfortably fit
+ * inside it, and only a genuinely abandoned slot is reclaimed.
+ */
+export const PLAYER_SWEEP_GRACE_MS = 120_000;
 
 export class Hub {
   private conns = new Set<Conn>();
@@ -46,8 +55,13 @@ export class Hub {
       const room = this.mgr.getRoom(conn.roomCode);
       if (room && room.phase !== 'LOBBY') {
         // Mid-game drop: keep the slot (and prompt) so the player can
-        // reclaim it via JOIN later; don't tell everyone they left.
-        this.mgr.markDisconnected(conn.roomCode, conn.username);
+        // reclaim it via JOIN later; don't tell everyone they left. If they
+        // never return, a sweep frees the slot after a grace period.
+        const graceMs = this.deps.playerSweepGraceMs ?? PLAYER_SWEEP_GRACE_MS;
+        this.mgr.markDisconnected(conn.roomCode, conn.username, {
+          graceMs,
+          onSweep: (c, u) => this.broadcast(c, { type: 'PLAYER_LEFT', username: u }),
+        });
         return;
       }
       this.mgr.removePlayer(conn.roomCode, conn.username);
