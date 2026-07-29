@@ -74,12 +74,12 @@ Prompt Battle server running.
   Local (this machine):
     Player: http://localhost:3000/client/
     Host:   http://localhost:3000/host/
-    Admin:  http://localhost:3000/admin/index.html
+    Admin:  http://localhost:3000/admin/
 
   LAN (same-network devices — share these):
     Player: http://192.168.0.42:3000/client/
     Host:   http://192.168.0.42:3000/host/
-    Admin:  http://192.168.0.42:3000/admin/index.html
+    Admin:  http://192.168.0.42:3000/admin/
 
   If a device cannot connect, allow this port through the OS firewall.
 ```
@@ -90,7 +90,7 @@ Prompt Battle server running.
 |---|---|---|
 | **플레이어** | `/client/` | 방 코드 + 이름으로 입장, 프롬프트 작성 |
 | **호스트** | `/host/` | 방 개설, 문제 선택, 게임 진행, 결과 표시 |
-| **관리자** | `/admin/index.html` | 계정·문제·바리에이션 관리 |
+| **관리자** | `/admin/` | 계정·문제·바리에이션 관리 |
 
 ## 6. 로컬 / LAN 호스팅
 

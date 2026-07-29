@@ -21,7 +21,7 @@ export function startupBanner(port: number, hosts: string[]): string {
   const urls = (host: string) => [
     `    Player: http://${host}:${port}/client/`,
     `    Host:   http://${host}:${port}/host/`,
-    `    Admin:  http://${host}:${port}/admin/index.html`,
+    `    Admin:  http://${host}:${port}/admin/`,
   ];
   const rows = [
     '',

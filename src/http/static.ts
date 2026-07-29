@@ -16,12 +16,39 @@ export function isSafePath(urlPath: string): boolean {
   const decoded = decodeURIComponent(urlPath);
   return !decoded.includes('..');
 }
+
+/**
+ * Resolve a URL path to an existing file under `root`, or null. Directory
+ * requests resolve to their `index.html` so the advertised entry points
+ * (`/host/`, `/client/`, `/admin/`, and bare `/host`) work, not just the
+ * explicit `.../index.html`. Returns null for traversal, missing files, and
+ * directories without an index.
+ */
+export function resolveFile(root: string, urlPath: string): string | null {
+  if (!isSafePath(urlPath)) return null;
+  if (urlPath === '/') urlPath = '/client/';
+  const candidate = join(root, urlPath);
+  // Trailing slash or an existing directory → its index.html.
+  if (urlPath.endsWith('/')) {
+    const index = join(candidate, 'index.html');
+    return existsSync(index) && statSync(index).isFile() ? index : null;
+  }
+  if (existsSync(candidate)) {
+    const st = statSync(candidate);
+    if (st.isFile()) return candidate;
+    if (st.isDirectory()) {
+      const index = join(candidate, 'index.html');
+      return existsSync(index) && statSync(index).isFile() ? index : null;
+    }
+  }
+  return null;
+}
+
 export function serveStatic(root: string, req: IncomingMessage, res: ServerResponse): boolean {
   const urlPath = (req.url ?? '/').split('?')[0];
   if (!isSafePath(urlPath)) { res.writeHead(400).end('bad path'); return true; }
-  let rel = urlPath === '/' ? '/client/index.html' : urlPath;
-  const file = join(root, rel);
-  if (!existsSync(file) || !statSync(file).isFile()) return false;
+  const file = resolveFile(root, urlPath);
+  if (!file) return false;
   res.writeHead(200, { 'content-type': contentType(file) });
   createReadStream(file).pipe(res);
   return true;
