@@ -46,6 +46,9 @@ function onMsg(msg) {
     state.phase = room.phase;
     state.players = room.players;
     state.problemId = room.problemId;
+    // Restore the active variation on reconnect so a mid-round refresh shows
+    // the actual (possibly variant) target, not the base render.
+    state.variationId = room.activeVariationId ?? null;
     // A lobby means no active prompt — mirror the server's per-round reset
     // so stale text from a prior round can't bleed into the next editor.
     if (room.phase === 'LOBBY') state.promptText = '';

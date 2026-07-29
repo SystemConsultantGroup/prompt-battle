@@ -92,6 +92,7 @@ export class GameManager {
       maxPlayers: room.maxPlayers,
       remainingSec,
       problemId: room.problemId,
+      activeVariationId: room.activeVariationId,
       deadline: room.deadline,
     };
   }
