@@ -7,16 +7,52 @@ function api(path, opts = {}) {
   return fetch(path, { ...opts, headers: { 'x-admin-password': pw, 'content-type': 'application/json', ...(opts.headers || {}) } });
 }
 
-function renderLogin() {
-  const input = el('input', { type: 'password', placeholder: '관리자 비밀번호' });
-  mount(app, el('div', { class: 'card' }, el('h1', {}, '관리자'),
+// ---- Inline toast helper -----------------------------------------------
+// Prepends a toast banner at the top of the given container element.
+// Replaces any previous inline banner so they don't stack.
+function showToast(msg, kind = 'error', target) {
+  target.querySelector('.toast')?.remove();
+  const t = el('div', { class: `toast ${kind}` }, msg);
+  target.prepend(t);
+}
+
+// Last typed password value — preserved across auth errors.
+let _pendingPw = '';
+
+function renderLogin(errMsg) {
+  const input = el('input', { type: 'password', placeholder: '관리자 비밀번호', id: 'admin-pw' });
+  // Restore typed value so an auth error doesn't wipe the field.
+  input.value = _pendingPw;
+
+  const card = el('div', { class: 'card' }, el('h1', {}, '관리자'),
     input,
-    el('button', { onClick: async () => {
-      pw = input.value;
-      const res = await api('/api/accounts');
-      if (res.status === 401) { alert('비밀번호가 올바르지 않습니다.'); return; }
-      renderConsole();
-    } }, '로그인')));
+    el('button', { id: 'admin-login-btn', onClick: doLogin }, '로그인'));
+
+  // Show inline error if provided (e.g. wrong password).
+  if (errMsg) {
+    const banner = el('div', { class: 'toast error' }, errMsg);
+    card.insertBefore(banner, card.firstChild);
+  }
+
+  mount(app, card);
+
+  // Focus the password field; select existing text so user can easily retype.
+  input.focus();
+  if (input.value) input.select();
+
+  // Enter key triggers login.
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+
+  async function doLogin() {
+    _pendingPw = input.value;
+    pw = input.value;
+    const res = await api('/api/accounts');
+    if (res.status === 401) {
+      renderLogin('비밀번호가 올바르지 않습니다.');
+      return;
+    }
+    renderConsole();
+  }
 }
 
 async function renderConsole() {
@@ -24,7 +60,7 @@ async function renderConsole() {
   const problems = await (await api('/api/problems')).json();
 
   // Accounts panel
-  const newName = el('input', { placeholder: '새 이름' });
+  const newName = el('input', { placeholder: '새 이름', id: 'acct-new-name' });
   const accList = el('ul', {}, ...accounts.map(a =>
     el('li', {}, `${a.username} `,
       el('button', { onClick: async () => { await api(`/api/accounts/${a.id}`, { method: 'DELETE' }); renderConsole(); } }, '삭제'))));

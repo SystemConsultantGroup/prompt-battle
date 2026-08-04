@@ -24,6 +24,28 @@ const ERR_KO = {
 };
 const koErr = (m) => ERR_KO[m] ?? m;
 
+// ---- Inline toast helper -----------------------------------------------
+// Shows a non-blocking banner.
+// If target is provided it is prepended into that element (inline in card).
+// If target is null, a fixed top-center overlay is shown and auto-dismissed.
+function showToast(msg, kind = 'error', target = null) {
+  const t = el('div', { class: `toast ${kind}` }, msg);
+  if (target) {
+    // Remove any existing inline banner first to avoid stacking.
+    target.querySelector('.toast:not(.toast-fixed)')?.remove();
+    target.prepend(t);
+  } else {
+    t.classList.add('toast-fixed');
+    document.body.appendChild(t);
+    const remove = () => {
+      t.classList.add('toast-out');
+      t.addEventListener('animationend', () => t.remove(), { once: true });
+    };
+    setTimeout(remove, 5000);
+    t.addEventListener('click', remove);
+  }
+}
+
 function storedHost() {
   try {
     const raw = sessionStorage.getItem(HOST_KEY);
@@ -42,6 +64,11 @@ function onOpen() {
   }
 }
 
+// Ref to the auth card DOM node — used to show inline errors.
+let _authCard = null;
+// Last typed password — kept so auth errors don't wipe the field.
+let _pendingPw = '';
+
 function onMsg(msg) {
   if (msg.type === 'ERROR') {
     // A bad admin password can arrive at any phase, not just AUTH: a mid-game
@@ -54,16 +81,18 @@ function onMsg(msg) {
     if (msg.message === 'bad admin password') {
       clearStoredHost();
       state.phase = 'AUTH';
-      render();
+      render(koErr(msg.message));
+      return;
     }
-    alert(koErr(msg.message));
+    // Other errors (not-host, no-problem, etc.): show as fixed toast so the
+    // current screen isn't replaced.
+    showToast(koErr(msg.message), 'error', null);
     return;
   }
   if (msg.type === 'ROOM_CLOSED') {
     clearStoredHost();
-    alert('방이 종료되었습니다.');
     state = { phase: 'AUTH', room: null, mirror: {}, remaining: null, progress: null, ranking: null, bus };
-    render();
+    render('방이 종료되었습니다.');
     return;
   }
   if (msg.type === 'STATE') {
@@ -96,14 +125,38 @@ function onMsg(msg) {
   render();
 }
 
-function renderAuth() {
-  const pw = el('input', { type: 'password', placeholder: '관리자 비밀번호' });
-  return mount(app, el('div', { class: 'card' },
+function renderAuth(errMsg) {
+  const pw = el('input', { type: 'password', placeholder: '관리자 비밀번호', id: 'host-pw' });
+  // Restore previously typed password so auth errors don't wipe the field.
+  pw.value = _pendingPw;
+
+  const card = el('div', { class: 'card' },
     el('h1', {}, '호스트'),
     pw,
-    el('button', {
-      onClick: () => { state.pw = pw.value; bus.send({ type: 'HOST_AUTH', adminPassword: pw.value }); },
-    }, '입장')));
+    el('button', { id: 'host-login-btn', onClick: doAuth }, '입장'));
+
+  // Show inline error banner if provided.
+  if (errMsg) {
+    const banner = el('div', { class: 'toast error' }, errMsg);
+    card.insertBefore(banner, card.firstChild);
+  }
+
+  _authCard = card;
+  mount(app, card);
+
+  // Focus the password field; select existing text so user can retype easily.
+  pw.focus();
+  if (pw.value) pw.select();
+
+  // Enter key triggers auth.
+  pw.addEventListener('keydown', (e) => { if (e.key === 'Enter') doAuth(); });
+
+  function doAuth() {
+    _pendingPw = pw.value;
+    state.pw = pw.value;
+    bus.send({ type: 'HOST_AUTH', adminPassword: pw.value });
+  }
+  return card;
 }
 
 async function fetchProblems() {
@@ -167,8 +220,10 @@ function handleResults() {
   return renderResults(app, state);
 }
 
-function render() {
-  if (state.phase === 'AUTH') return renderAuth();
+function render(errMsg) {
+  if (state.phase === 'AUTH') return renderAuth(errMsg);
+  // For full-screen phases, pass the error as a fixed toast.
+  if (errMsg) showToast(errMsg, 'warn', null);
   if (state.phase === 'PLAYING') return renderDashboard(app, state);
   if (state.phase === 'GRADING') return mount(app, el('div', { class: 'card' },
     el('h2', {}, '채점 중…'), el('p', {}, state.progress ? `${state.progress.done}/${state.progress.total}` : '')));

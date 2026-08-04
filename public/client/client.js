@@ -18,6 +18,28 @@ const ERR_KO = {
 };
 const koErr = (m) => ERR_KO[m] ?? m;
 
+// ---- Inline toast helper -----------------------------------------------
+// Shows a non-blocking banner inside a target element (prepended at top).
+// kind: 'error' | 'warn' | 'info'
+// If target is null, shows a fixed overlay that auto-dismisses after 5 s.
+function showToast(msg, kind = 'error', target = null) {
+  const t = el('div', { class: `toast ${kind}` }, msg);
+  if (target) {
+    // Inline: prepend into the given container element.
+    target.prepend(t);
+  } else {
+    // Fixed overlay for full-screen views (PLAYING / GRADING / RESULT).
+    t.classList.add('toast-fixed');
+    document.body.appendChild(t);
+    const remove = () => {
+      t.classList.add('toast-out');
+      t.addEventListener('animationend', () => t.remove(), { once: true });
+    };
+    setTimeout(remove, 5000);
+    t.addEventListener('click', remove);
+  }
+}
+
 function storedJoin() {
   try {
     const raw = sessionStorage.getItem(JOIN_KEY);
@@ -33,24 +55,27 @@ function onOpen() {
   if (saved) bus.send({ type: 'JOIN', roomCode: saved.roomCode, username: saved.username });
 }
 
+// Pending join inputs — kept across ERROR so values are not wiped.
+let _pendingCode = '';
+let _pendingName = '';
+
 function onMsg(msg) {
   if (msg.type === 'ERROR') {
     // Avoid auto-rejoin loops: if the stored session no longer works
     // (evicted room, name taken, game already running), drop it and
     // fall back to a manual JOIN screen instead of retrying forever.
     clearStoredJoin();
-    alert(koErr(msg.message));
+    const errText = koErr(msg.message);
     state = { phase: 'JOIN', players: [], promptText: '', variationId: null };
     currentScreen = null;
-    render();
+    render(errText);          // pass error so renderJoin can display it inline
     return;
   }
   if (msg.type === 'ROOM_CLOSED') {
     clearStoredJoin();
-    alert('호스트가 방을 닫았습니다.');
     state = { phase: 'JOIN', players: [], promptText: '', variationId: null };
     currentScreen = null;
-    render();
+    render('호스트가 방을 닫았습니다.');
     return;
   }
   if (msg.type === 'STATE') {
@@ -84,32 +109,55 @@ function onMsg(msg) {
   render();
 }
 let currentScreen = null;
-function render() {
+function render(errMsg) {
   const target = state.phase;
   if (target === 'PLAYING' && currentScreen === 'PLAYING') {
+    // Propagate error as a fixed toast on the full-screen editor.
+    if (errMsg) showToast(errMsg, 'error', null);
     updateEditor();
     return;
   }
   currentScreen = target;
-  if (target === 'JOIN') return renderJoin();
+  if (target === 'JOIN') return renderJoin(errMsg);
   if (target === 'LOBBY') return renderLobby();
   if (target === 'PLAYING') return renderEditor();
   if (target === 'GRADING') return renderGrading();
   if (target === 'RESULT') return renderResult();
 }
-function renderJoin() {
-  const code = el('input', { placeholder: '방 코드' });
-  const name = el('input', { placeholder: '이름' });
-  mount(app, el('div', { class: 'card' },
+function renderJoin(errMsg) {
+  const code = el('input', { placeholder: '방 코드', id: 'join-code' });
+  const name = el('input', { placeholder: '이름', id: 'join-name' });
+  // Restore previously typed values so a server error doesn't wipe the fields.
+  code.value = _pendingCode;
+  name.value = _pendingName;
+
+  const card = el('div', { class: 'card' },
     el('h1', {}, 'Prompt Battle'),
     code, name,
-    el('button', { onClick: () => {
-      const roomCode = code.value.toUpperCase().trim();
-      const username = name.value.trim();
-      try { sessionStorage.setItem(JOIN_KEY, JSON.stringify({ roomCode, username })); } catch { /* ignore */ }
-      bus.send({ type: 'JOIN', roomCode, username });
-      state.phase = 'LOBBY';
-    } }, '입장')));
+    el('button', { id: 'join-btn', onClick: doJoin }, '입장'));
+
+  // Show inline error banner at the top of the card.
+  if (errMsg) {
+    const banner = el('div', { class: 'toast error' }, errMsg);
+    card.insertBefore(banner, card.firstChild);
+  }
+
+  mount(app, card);
+
+  // Focus the appropriate field.
+  if (!code.value) code.focus();
+  else if (!name.value) name.focus();
+
+  // Enter key on either field triggers join.
+  function doJoin() {
+    _pendingCode = code.value.toUpperCase().trim();
+    _pendingName = name.value.trim();
+    try { sessionStorage.setItem(JOIN_KEY, JSON.stringify({ roomCode: _pendingCode, username: _pendingName })); } catch { /* ignore */ }
+    bus.send({ type: 'JOIN', roomCode: _pendingCode, username: _pendingName });
+    state.phase = 'LOBBY';
+  }
+  code.addEventListener('keydown', (e) => { if (e.key === 'Enter') doJoin(); });
+  name.addEventListener('keydown', (e) => { if (e.key === 'Enter') doJoin(); });
 }
 function renderLobby() {
   mount(app, el('div', { class: 'card' },
