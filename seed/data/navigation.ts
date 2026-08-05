@@ -1,92 +1,84 @@
-import type { ProblemSeed } from '../types.ts';
+﻿import type { ProblemSeed } from '../types.ts';
 
-// Shared body reset so the smaller components render centered on a neutral canvas.
 const CENTER = `body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f4f5f7;font-family:system-ui,-apple-system,sans-serif}`;
 
 export const navigation: ProblemSeed[] = [
   {
-    title: 'Top Navbar',
+    title: '상단 내비게이션 바',
     category: 'navigation',
     difficulty: 'normal',
-    timeLimitSec: 300,
+    timeLimitSec: 60,
     targetHtml: `<nav class="navbar">
-  <div class="brand">Acme</div>
-  <div class="nav-links">
-    <a href="#" class="link">Home</a>
-    <a href="#" class="link">Products</a>
-    <a href="#" class="link">Pricing</a>
-    <a href="#" class="link">About</a>
+  <div class="logo">MyApp</div>
+  <div class="links">
+    <a href="#">홈</a>
+    <a href="#">소개</a>
+    <a href="#">연락처</a>
   </div>
 </nav>`,
-    targetCss: `body{margin:0;min-height:100vh;background:#f4f5f7;font-family:system-ui,-apple-system,sans-serif}
-.navbar{display:flex;align-items:center;justify-content:space-between;width:100%;box-sizing:border-box;padding:14px 32px;background:#fff;border-bottom:1px solid #e5e7eb}
-.brand{font-size:20px;font-weight:700;color:#111827}
-.nav-links{display:flex;gap:24px}
-.link{color:#374151;text-decoration:none;font-size:15px}
-.link:hover{color:#5b7cfa}`,
+    targetCss: `body{margin:0;font-family:system-ui,-apple-system,sans-serif}
+.navbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:60px;background:#fff;border-bottom:1px solid #e5e7eb}
+.logo{font-size:18px;font-weight:700;color:#111827}
+.links{display:flex;gap:24px}
+.links a{color:#374151;text-decoration:none;font-size:14px}
+.links a:hover{color:#5b7cfa}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'A <nav> element contains a brand/logo and a set of links' },
-      { kind: 'basic', description: '3 or 4 nav links are present' },
-      { kind: 'basic', description: 'The brand sits on one side and the links are grouped on the other (e.g. justify-content:space-between)' },
-      { kind: 'detail', description: 'The nav links have no underline (text-decoration:none)' },
-      { kind: 'detail', description: 'A hover state changes the link color (:hover rule)' },
-      { kind: 'detail', description: 'The navbar spans the full width of the page' },
+      { kind: 'basic', description: '로고/브랜드 텍스트와 내비게이션 링크가 모두 있다' },
+      { kind: 'basic', description: '내비 링크가 최소 3개 있다' },
+      { kind: 'basic', description: '내비바가 페이지 상단에 가로로 전체 폭으로 표시된다' },
+      { kind: 'detail', description: '로고와 링크가 양 끝에 배치된다(space-between 등)' },
+      { kind: 'detail', description: '내비바 하단에 구분선/경계(border-bottom 등)가 있다' },
     ],
   },
   {
-    title: 'Tabs',
+    title: '탭 내비게이션',
     category: 'navigation',
     difficulty: 'normal',
-    timeLimitSec: 300,
+    timeLimitSec: 60,
     targetHtml: `<div class="tabs">
-  <div class="tab-list" role="tablist">
-    <button class="tab active" data-tab="1">Overview</button>
-    <button class="tab" data-tab="2">Specs</button>
-    <button class="tab" data-tab="3">Reviews</button>
-  </div>
-  <div class="panel" data-panel="1">Overview content goes here.</div>
-  <div class="panel" data-panel="2" hidden>Specs content goes here.</div>
-  <div class="panel" data-panel="3" hidden>Reviews content goes here.</div>
+  <button class="tab active" data-panel="overview">개요</button>
+  <button class="tab" data-panel="specs">사양</button>
+  <button class="tab" data-panel="reviews">리뷰</button>
+</div>
+<div class="panels">
+  <div class="panel" id="overview">개요 내용</div>
+  <div class="panel" id="specs" hidden>사양 내용</div>
+  <div class="panel" id="reviews" hidden>리뷰 내용</div>
 </div>`,
     targetCss: `${CENTER}
-.tabs{width:320px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden}
-.tab-list{display:flex;border-bottom:1px solid #e5e7eb}
-.tab{flex:1;background:transparent;border:0;padding:12px;font-size:14px;cursor:pointer;color:#6b7280}
-.tab.active{color:#5b7cfa;border-bottom:2px solid #5b7cfa;font-weight:600}
-.panel{padding:16px;font-size:14px;color:#374151}`,
-    targetJs: `const tabs=document.querySelectorAll('.tab');
-const panels=document.querySelectorAll('.panel');
-tabs.forEach(tab=>{
+.tabs{display:flex;border-bottom:2px solid #e5e7eb}
+.tab{background:transparent;border:0;padding:10px 20px;font-size:14px;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px}
+.tab.active{color:#5b7cfa;border-bottom-color:#5b7cfa;font-weight:600}
+.panels{padding:16px 0;font-size:14px;color:#374151}`,
+    targetJs: `document.querySelectorAll('.tab').forEach(tab=>{
   tab.addEventListener('click',()=>{
-    tabs.forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.hidden=true);
     tab.classList.add('active');
-    const id=tab.getAttribute('data-tab');
-    panels.forEach(p=>{
-      p.hidden = p.getAttribute('data-panel') !== id;
-    });
+    document.getElementById(tab.dataset.panel).hidden=false;
   });
 });`,
     criteria: [
-      { kind: 'basic', description: 'Three tab buttons are present ("Overview", "Specs", "Reviews")' },
-      { kind: 'basic', description: 'Three corresponding content panels exist, one per tab' },
-      { kind: 'basic', description: 'Only one panel is visible at a time on load (the others hidden)' },
-      { kind: 'basic', description: 'Clicking a tab shows its panel and hides the others' },
-      { kind: 'detail', description: 'The active tab is visually distinct from inactive tabs (border/background/color/font-weight)' },
-      { kind: 'detail', description: 'The first tab and panel are active by default before any click' },
+      { kind: 'basic', description: '"개요", "사양", "리뷰" 세 탭 버튼이 있다' },
+      { kind: 'basic', description: '탭마다 대응하는 콘텐츠 패널이 있다' },
+      { kind: 'basic', description: '로드 시 하나의 패널만 보이고 나머지는 숨겨진다' },
+      { kind: 'basic', description: '탭 클릭 시 해당 패널이 표시되고 나머지가 숨겨진다' },
+      { kind: 'detail', description: '활성 탭이 비활성 탭과 시각적으로 다르다(테두리/배경/색/굵기)' },
+      { kind: 'detail', description: '첫 번째 탭과 패널이 기본으로 활성 상태이다' },
     ],
   },
   {
-    title: 'Breadcrumbs',
+    title: '브레드크럼',
     category: 'navigation',
     difficulty: 'easy',
-    timeLimitSec: 180,
+    timeLimitSec: 60,
     targetHtml: `<nav class="breadcrumbs" aria-label="Breadcrumb">
-  <a href="#" class="crumb">Home</a>
+  <a href="#" class="crumb">홈</a>
   <span class="sep">/</span>
-  <a href="#" class="crumb">Category</a>
+  <a href="#" class="crumb">카테고리</a>
   <span class="sep">/</span>
-  <span class="crumb current" aria-current="page">Product</span>
+  <span class="crumb current" aria-current="page">제품</span>
 </nav>`,
     targetCss: `${CENTER}
 .breadcrumbs{display:flex;align-items:center;gap:8px;font-size:14px}
@@ -96,24 +88,24 @@ tabs.forEach(tab=>{
 .sep{color:#9ca3af}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'A breadcrumb trail with "Home", "Category", and "Product" is present in order' },
-      { kind: 'basic', description: 'Separators appear between each breadcrumb item' },
-      { kind: 'basic', description: 'The last item ("Product") is plain text/span, not a clickable link' },
-      { kind: 'detail', description: 'The last item is visually distinct from the earlier links (e.g. different color/weight)' },
-      { kind: 'detail', description: 'The earlier crumbs ("Home", "Category") are anchor (<a>) links' },
+      { kind: 'basic', description: '"홈", "카테고리", "제품" 순서의 브레드크럼이 있다' },
+      { kind: 'basic', description: '각 항목 사이에 구분자가 있다' },
+      { kind: 'basic', description: '마지막 항목("제품")이 링크가 아닌 텍스트/span이다' },
+      { kind: 'detail', description: '마지막 항목이 앞의 링크들과 시각적으로 다르다(색/굵기 등)' },
+      { kind: 'detail', description: '"홈", "카테고리"가 <a> 링크 요소이다' },
     ],
   },
   {
-    title: 'Pagination',
+    title: '페이지네이션',
     category: 'navigation',
     difficulty: 'normal',
-    timeLimitSec: 300,
+    timeLimitSec: 60,
     targetHtml: `<nav class="pagination" aria-label="Pagination">
-  <button class="page-btn">Prev</button>
+  <button class="page-btn">이전</button>
   <button class="page-num">1</button>
   <button class="page-num active" aria-current="page">2</button>
   <button class="page-num">3</button>
-  <button class="page-btn">Next</button>
+  <button class="page-btn">다음</button>
 </nav>`,
     targetCss: `${CENTER}
 .pagination{display:flex;align-items:center;gap:6px}
@@ -121,30 +113,30 @@ tabs.forEach(tab=>{
 .page-num.active{background:#5b7cfa;border-color:#5b7cfa;color:#fff;font-weight:600}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'Prev and Next buttons are present' },
-      { kind: 'basic', description: 'Page numbers 1, 2, and 3 are present' },
-      { kind: 'basic', description: 'Page 2 is visually highlighted as the active/current page' },
-      { kind: 'detail', description: 'The active page has a different background/border color from the inactive pages' },
-      { kind: 'detail', description: 'The active page is marked with aria-current="page" (or equivalent)' },
+      { kind: 'basic', description: '"이전"과 "다음" 버튼이 있다' },
+      { kind: 'basic', description: '페이지 번호 1, 2, 3이 있다' },
+      { kind: 'basic', description: '2페이지가 현재 활성 페이지로 강조 표시된다' },
+      { kind: 'detail', description: '활성 페이지의 배경/테두리 색이 비활성과 다르다' },
+      { kind: 'detail', description: '활성 페이지에 aria-current="page"가 있다' },
     ],
   },
   {
-    title: 'Sidebar Menu',
+    title: '사이드바 메뉴',
     category: 'navigation',
     difficulty: 'normal',
-    timeLimitSec: 300,
+    timeLimitSec: 60,
     targetHtml: `<nav class="sidebar" aria-label="Sidebar">
   <a href="#" class="item">
-    <span class="icon">🏠</span> Dashboard
+    <span class="icon">🏠</span> 대시보드
   </a>
   <a href="#" class="item active">
-    <span class="icon">📁</span> Projects
+    <span class="icon">📁</span> 프로젝트
   </a>
   <a href="#" class="item">
-    <span class="icon">👥</span> Team
+    <span class="icon">👥</span> 팀
   </a>
   <a href="#" class="item">
-    <span class="icon">⚙️</span> Settings
+    <span class="icon">⚙️</span> 설정
   </a>
 </nav>`,
     targetCss: `${CENTER}
@@ -155,32 +147,32 @@ tabs.forEach(tab=>{
 .icon{font-size:16px}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'A vertical menu with exactly 4 items is present' },
-      { kind: 'basic', description: 'Each item shows both an icon and a text label' },
-      { kind: 'basic', description: 'One item ("Projects") is visually highlighted as active' },
-      { kind: 'detail', description: 'The items are stacked vertically (flex-direction:column or block layout)' },
-      { kind: 'detail', description: 'The active item’s background or text color differs from the other items' },
+      { kind: 'basic', description: '정확히 4개의 항목이 있는 세로 메뉴가 있다' },
+      { kind: 'basic', description: '각 항목에 아이콘과 텍스트 레이블이 모두 있다' },
+      { kind: 'basic', description: '"프로젝트" 항목이 활성 상태로 강조된다' },
+      { kind: 'detail', description: '항목들이 세로로 쌓인다(flex-direction:column 등)' },
+      { kind: 'detail', description: '활성 항목의 배경 또는 텍스트 색이 나머지와 다르다' },
     ],
   },
   {
-    title: 'Stepper',
+    title: '단계 표시기 (스테퍼)',
     category: 'navigation',
     difficulty: 'normal',
-    timeLimitSec: 300,
+    timeLimitSec: 60,
     targetHtml: `<div class="stepper">
   <div class="step completed">
     <div class="circle">✓</div>
-    <div class="label">Account</div>
+    <div class="label">계정</div>
   </div>
   <div class="connector completed"></div>
   <div class="step current">
     <div class="circle">2</div>
-    <div class="label">Shipping</div>
+    <div class="label">배송</div>
   </div>
   <div class="connector"></div>
   <div class="step">
     <div class="circle">3</div>
-    <div class="label">Payment</div>
+    <div class="label">결제</div>
   </div>
 </div>`,
     targetCss: `${CENTER}
@@ -195,24 +187,24 @@ tabs.forEach(tab=>{
 .connector.completed{background:#22c55e}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'Three numbered steps are arranged horizontally' },
-      { kind: 'basic', description: 'Step 1 is marked completed with a checkmark or other distinct completed style' },
-      { kind: 'basic', description: 'Step 2 is marked as the current step, visually distinct from the others' },
-      { kind: 'detail', description: 'A connector/line visually links the steps together' },
-      { kind: 'detail', description: 'The completed step uses a different color from the current and upcoming steps' },
+      { kind: 'basic', description: '번호가 매겨진 3개의 단계가 가로로 배치된다' },
+      { kind: 'basic', description: '1단계가 완료(체크마크 등) 스타일로 표시된다' },
+      { kind: 'basic', description: '2단계가 현재 단계로 시각적으로 구분된다' },
+      { kind: 'detail', description: '단계들을 연결하는 선/커넥터가 있다' },
+      { kind: 'detail', description: '완료된 단계가 현재/미완료 단계와 다른 색이다' },
     ],
   },
   {
-    title: 'Dropdown Menu',
+    title: '드롭다운 메뉴',
     category: 'navigation',
     difficulty: 'normal',
-    timeLimitSec: 300,
+    timeLimitSec: 60,
     targetHtml: `<div class="dropdown">
-  <button class="dd-btn" id="ddBtn" aria-haspopup="true" aria-expanded="false">Options ▾</button>
+  <button class="dd-btn" id="ddBtn" aria-haspopup="true" aria-expanded="false">옵션 ▾</button>
   <div class="dd-menu" id="ddMenu" hidden>
-    <a href="#" class="dd-item">Edit</a>
-    <a href="#" class="dd-item">Duplicate</a>
-    <a href="#" class="dd-item">Delete</a>
+    <a href="#" class="dd-item">수정</a>
+    <a href="#" class="dd-item">복제</a>
+    <a href="#" class="dd-item">삭제</a>
   </div>
 </div>`,
     targetCss: `${CENTER}
@@ -229,11 +221,11 @@ btn.addEventListener('click',()=>{
   btn.setAttribute('aria-expanded', String(!open));
 });`,
     criteria: [
-      { kind: 'basic', description: 'A button toggles a menu of exactly 3 items' },
-      { kind: 'basic', description: 'The menu is hidden by default before any interaction' },
-      { kind: 'basic', description: 'Clicking the button shows the menu; clicking it again hides the menu' },
-      { kind: 'detail', description: 'The button’s aria-expanded attribute reflects the open/closed state' },
-      { kind: 'detail', description: 'The menu is positioned relative to the button (e.g. position:absolute inside a position:relative wrapper)' },
+      { kind: 'basic', description: '버튼 클릭으로 정확히 3개 항목의 메뉴가 토글된다' },
+      { kind: 'basic', description: '메뉴가 기본으로 숨겨져 있다' },
+      { kind: 'basic', description: '버튼 클릭으로 메뉴가 열리고, 다시 클릭하면 닫힌다' },
+      { kind: 'detail', description: 'aria-expanded 속성이 열림/닫힘 상태를 반영한다' },
+      { kind: 'detail', description: '메뉴가 버튼에 상대적으로 위치한다(position:absolute)' },
     ],
   },
 ];

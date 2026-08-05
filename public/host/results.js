@@ -4,8 +4,13 @@ const KIND_KO = { basic: '기본', detail: '디테일' };
 
 export function renderResults(app, state) {
   const rows = (state.ranking ?? []).map((r, i) => {
-    const items = r.items.map(it => el('li', { class: it.passed ? 'ok' : 'no' },
-      `${it.passed ? 'O' : 'X'} [${KIND_KO[it.kind] ?? it.kind}] ${it.description} (${Math.round(it.rate * 100)}%)`));
+    const items = r.items.map(it => {
+      const isPartial = it.rate > 0 && it.rate < 1;
+      const cls = it.passed && !isPartial ? 'ok' : isPartial ? 'partial' : 'no';
+      const icon = it.passed && !isPartial ? 'O' : isPartial ? '△' : 'X';
+      return el('li', { class: cls },
+        `${icon} [${KIND_KO[it.kind] ?? it.kind}] ${it.description} (${Math.round(it.rate * 100)}%)`);
+    });
     const frame = r.genToken
       ? el('iframe', { class: 'result-frame', src: `/render/gen/${r.genToken}`, sandbox: 'allow-scripts' })
       : null;

@@ -36,7 +36,7 @@ export class ClaudeProvider implements LLMProvider {
 
   async grade(code: GeneratedCode, criteria: Criterion[]): Promise<GradeResult> {
     const text = await this.call(
-      'You are a strict, fair UI grader. Respond only with the requested JSON.',
+      'You are a lenient, generous UI grader. Respond only with the requested JSON.',
       buildGradePrompt(code, criteria));
     const obj = extractJson(text);
     if (!Array.isArray(obj.items)) throw new Error('bad grade shape');

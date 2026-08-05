@@ -5,56 +5,56 @@ const CENTER = `body{margin:0;min-height:100vh;display:flex;align-items:center;j
 
 export const buttons: ProblemSeed[] = [
   {
-    title: 'Primary Button',
+    title: '기본 버튼',
     category: 'buttons',
     difficulty: 'easy',
-    timeLimitSec: 180,
-    targetHtml: `<button class="btn">Get Started</button>`,
+    timeLimitSec: 60,
+    targetHtml: `<button class="btn">시작하기</button>`,
     targetCss: `${CENTER}
 .btn{background:#5b7cfa;color:#fff;border:0;padding:12px 24px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;transition:background .15s}
 .btn:hover{background:#4a6ae8}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'A <button> element is present' },
-      { kind: 'basic', description: 'The button text reads "Get Started"' },
-      { kind: 'basic', description: 'The button has a solid (non-transparent) background color' },
-      { kind: 'basic', description: 'The button has horizontal and vertical padding' },
-      { kind: 'detail', description: 'The button has rounded corners (border-radius)' },
-      { kind: 'detail', description: 'A hover state changes the button appearance (:hover rule)' },
-      { kind: 'detail', description: 'The button text uses a bold / 600+ font weight' },
+      { kind: 'basic', description: '<button> 요소가 존재한다' },
+      { kind: 'basic', description: '버튼 텍스트가 "시작하기"이다' },
+      { kind: 'basic', description: '버튼에 불투명한 배경색이 있다' },
+      { kind: 'basic', description: '버튼에 가로·세로 패딩이 있다' },
+      { kind: 'detail', description: '버튼에 둥근 모서리(border-radius)가 있다' },
+      { kind: 'detail', description: ':hover 상태에서 버튼 외관이 변경된다' },
+      { kind: 'detail', description: '버튼 텍스트의 font-weight가 굵다(600 이상)' },
     ],
   },
   {
-    title: 'Icon Button',
+    title: '아이콘 버튼',
     category: 'buttons',
     difficulty: 'easy',
-    timeLimitSec: 180,
-    targetHtml: `<button class="icon-btn" aria-label="Add">
+    timeLimitSec: 60,
+    targetHtml: `<button class="icon-btn" aria-label="추가">
   <span class="icon">+</span>
-  <span>Add item</span>
+  <span>항목 추가</span>
 </button>`,
     targetCss: `${CENTER}
 .icon-btn{display:inline-flex;align-items:center;gap:8px;background:#111827;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-size:15px;cursor:pointer}
 .icon{font-size:20px;line-height:1}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'A <button> contains both an icon/symbol and a text label' },
-      { kind: 'basic', description: 'The label text reads "Add item"' },
-      { kind: 'basic', description: 'The icon and label sit on the same horizontal line' },
-      { kind: 'detail', description: 'There is spacing/gap between the icon and the label' },
-      { kind: 'detail', description: 'The button uses inline-flex (or flin) with vertical centering (align-items)' },
-      { kind: 'detail', description: 'The button has an aria-label or otherwise accessible name' },
+      { kind: 'basic', description: '<button> 안에 아이콘/기호와 텍스트 레이블이 모두 있다' },
+      { kind: 'basic', description: '레이블 텍스트가 "항목 추가"이다' },
+      { kind: 'basic', description: '아이콘과 레이블이 같은 가로줄에 위치한다' },
+      { kind: 'detail', description: '아이콘과 레이블 사이에 간격(gap)이 있다' },
+      { kind: 'detail', description: '버튼이 inline-flex이고 세로 중앙 정렬(align-items)이 적용된다' },
+      { kind: 'detail', description: '버튼에 aria-label 또는 접근 가능한 이름이 있다' },
     ],
   },
   {
-    title: 'Button Group (Segmented)',
+    title: '버튼 그룹 (세그먼트)',
     category: 'buttons',
     difficulty: 'normal',
-    timeLimitSec: 300,
+    timeLimitSec: 60,
     targetHtml: `<div class="group" role="group">
-  <button class="seg active">Day</button>
-  <button class="seg">Week</button>
-  <button class="seg">Month</button>
+  <button class="seg active">일</button>
+  <button class="seg">주</button>
+  <button class="seg">월</button>
 </div>`,
     targetCss: `${CENTER}
 .group{display:inline-flex;border:1px solid #d1d5db;border-radius:8px;overflow:hidden}
@@ -63,21 +63,21 @@ export const buttons: ProblemSeed[] = [
 .seg.active{background:#5b7cfa;color:#fff}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'Three buttons labelled "Day", "Week", and "Month" are present' },
-      { kind: 'basic', description: 'The three buttons are joined side-by-side as one segmented control' },
-      { kind: 'basic', description: 'One button (the first, "Day") is visually highlighted as active' },
-      { kind: 'detail', description: 'The active button has a different background from the inactive ones' },
-      { kind: 'detail', description: 'The group has a shared rounded outer border' },
-      { kind: 'detail', description: 'Dividers separate adjacent buttons (border between segments)' },
+      { kind: 'basic', description: '"일", "주", "월" 세 버튼이 있다' },
+      { kind: 'basic', description: '세 버튼이 하나의 세그먼트 컨트롤처럼 나란히 붙어있다' },
+      { kind: 'basic', description: '첫 번째("일") 버튼이 활성(active) 상태로 강조된다' },
+      { kind: 'detail', description: '활성 버튼의 배경색이 비활성 버튼과 다르다' },
+      { kind: 'detail', description: '그룹 전체에 공유된 외곽 둥근 테두리가 있다' },
+      { kind: 'detail', description: '인접한 버튼 사이에 구분선(border)이 있다' },
     ],
   },
   {
-    title: 'Toggle Button',
+    title: '토글 버튼',
     category: 'buttons',
     difficulty: 'normal',
-    timeLimitSec: 300,
+    timeLimitSec: 60,
     targetHtml: `<button class="toggle" id="tg" aria-pressed="false">
-  <span class="dot"></span> Notifications off
+  <span class="dot"></span> 알림 끔
 </button>`,
     targetCss: `${CENTER}
 .toggle{display:inline-flex;align-items:center;gap:10px;background:#e5e7eb;color:#374151;border:0;padding:10px 18px;border-radius:999px;font-size:14px;cursor:pointer}
@@ -88,42 +88,42 @@ export const buttons: ProblemSeed[] = [
 t.addEventListener('click',()=>{
   const on=t.getAttribute('aria-pressed')==='true';
   t.setAttribute('aria-pressed', String(!on));
-  t.lastChild.textContent = on ? ' Notifications off' : ' Notifications on';
+  t.lastChild.textContent = on ? ' 알림 끔' : ' 알림 켬';
 });`,
     criteria: [
-      { kind: 'basic', description: 'A single toggle button is present with a status dot and a text label' },
-      { kind: 'basic', description: 'Clicking the button flips it between an on and off state' },
-      { kind: 'basic', description: 'The label text switches between "Notifications off" and "Notifications on"' },
-      { kind: 'detail', description: 'The button background/color changes between the on and off states' },
-      { kind: 'detail', description: 'The status dot changes color between states' },
-      { kind: 'detail', description: 'The pressed state is reflected via aria-pressed' },
+      { kind: 'basic', description: '상태 점과 텍스트 레이블이 있는 토글 버튼이 하나 있다' },
+      { kind: 'basic', description: '버튼 클릭 시 켬/끔 상태가 전환된다' },
+      { kind: 'basic', description: '레이블 텍스트가 "알림 끔"과 "알림 켬" 사이에서 전환된다' },
+      { kind: 'detail', description: '켬/끔 상태에 따라 버튼 배경/글색이 변경된다' },
+      { kind: 'detail', description: '상태 점의 색이 상태에 따라 변경된다' },
+      { kind: 'detail', description: 'aria-pressed 속성이 눌림 상태를 반영한다' },
     ],
   },
   {
-    title: 'Floating Action Button',
+    title: '플로팅 액션 버튼 (FAB)',
     category: 'buttons',
     difficulty: 'easy',
-    timeLimitSec: 180,
-    targetHtml: `<button class="fab" aria-label="Compose">+</button>`,
+    timeLimitSec: 60,
+    targetHtml: `<button class="fab" aria-label="작성">+</button>`,
     targetCss: `body{margin:0;min-height:100vh;background:#f4f5f7;font-family:system-ui,sans-serif}
 .fab{position:fixed;right:24px;bottom:24px;width:56px;height:56px;border-radius:50%;border:0;background:#ef4444;color:#fff;font-size:28px;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.25)}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'A round button with a "+" symbol is present' },
-      { kind: 'basic', description: 'The button is a perfect circle (equal width/height, 50% radius)' },
-      { kind: 'basic', description: 'The button is pinned to a bottom corner of the screen (fixed/absolute position)' },
-      { kind: 'detail', description: 'The button casts a drop shadow (box-shadow)' },
-      { kind: 'detail', description: 'The button uses a distinct accent background color' },
-      { kind: 'detail', description: 'The button has an accessible label (aria-label)' },
+      { kind: 'basic', description: '"+" 기호가 있는 둥근 버튼이 존재한다' },
+      { kind: 'basic', description: '버튼이 완전한 원형이다(width=height, 50% 반지름)' },
+      { kind: 'basic', description: '버튼이 화면 하단 모서리에 고정된다(fixed/absolute)' },
+      { kind: 'detail', description: '버튼에 그림자(box-shadow)가 있다' },
+      { kind: 'detail', description: '버튼에 뚜렷한 액센트 배경색이 사용된다' },
+      { kind: 'detail', description: '버튼에 aria-label이 있다' },
     ],
   },
   {
-    title: 'Loading Button',
+    title: '로딩 버튼',
     category: 'buttons',
     difficulty: 'normal',
-    timeLimitSec: 300,
+    timeLimitSec: 60,
     targetHtml: `<button class="btn" disabled>
-  <span class="spinner"></span> Saving…
+  <span class="spinner"></span> 저장 중…
 </button>`,
     targetCss: `${CENTER}
 .btn{display:inline-flex;align-items:center;gap:10px;background:#5b7cfa;color:#fff;border:0;padding:12px 24px;border-radius:8px;font-size:15px;opacity:.85;cursor:not-allowed}
@@ -131,31 +131,31 @@ t.addEventListener('click',()=>{
 @keyframes spin{to{transform:rotate(360deg)}}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'A button contains a spinner and the text "Saving…"' },
-      { kind: 'basic', description: 'The button is disabled' },
-      { kind: 'basic', description: 'A circular spinner element is present next to the text' },
-      { kind: 'detail', description: 'The spinner rotates via a CSS animation (@keyframes + animation)' },
-      { kind: 'detail', description: 'The disabled button is visually dimmed (reduced opacity)' },
-      { kind: 'detail', description: 'The cursor indicates a non-interactive state (cursor:not-allowed)' },
+      { kind: 'basic', description: '버튼 안에 스피너와 "저장 중…" 텍스트가 있다' },
+      { kind: 'basic', description: '버튼이 비활성(disabled) 상태이다' },
+      { kind: 'basic', description: '텍스트 옆에 원형 스피너 요소가 있다' },
+      { kind: 'detail', description: '스피너가 CSS 애니메이션(@keyframes + animation)으로 회전한다' },
+      { kind: 'detail', description: '비활성 버튼이 시각적으로 흐리게(opacity 감소) 표시된다' },
+      { kind: 'detail', description: '커서가 비상호작용 상태(cursor:not-allowed)를 나타낸다' },
     ],
   },
   {
-    title: 'Link Button (Ghost)',
+    title: '고스트 버튼 (아웃라인)',
     category: 'buttons',
     difficulty: 'easy',
-    timeLimitSec: 180,
-    targetHtml: `<button class="ghost">Learn more →</button>`,
+    timeLimitSec: 60,
+    targetHtml: `<button class="ghost">더 알아보기 →</button>`,
     targetCss: `${CENTER}
 .ghost{background:transparent;color:#5b7cfa;border:1px solid #5b7cfa;padding:10px 20px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all .15s}
 .ghost:hover{background:#5b7cfa;color:#fff}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'A button with the text "Learn more" and an arrow is present' },
-      { kind: 'basic', description: 'The button has a transparent/no fill background by default' },
-      { kind: 'basic', description: 'The button has a colored outline/border' },
-      { kind: 'detail', description: 'On hover the button fills with the accent color (:hover rule)' },
-      { kind: 'detail', description: 'The border color matches the text color' },
-      { kind: 'detail', description: 'The button has rounded corners' },
+      { kind: 'basic', description: '"더 알아보기"와 화살표가 있는 버튼이 있다' },
+      { kind: 'basic', description: '버튼의 기본 배경이 투명/채우기 없음이다' },
+      { kind: 'basic', description: '버튼에 유색 아웃라인/테두리가 있다' },
+      { kind: 'detail', description: '호버 시 버튼이 액센트 색으로 채워진다(:hover 규칙)' },
+      { kind: 'detail', description: '테두리 색과 텍스트 색이 일치한다' },
+      { kind: 'detail', description: '버튼에 둥근 모서리가 있다' },
     ],
   },
 ];

@@ -65,7 +65,7 @@ test('create problem with criteria and read back', async () => {
 test('PUT /api/problems/:id updates problem fields and replaces criteria', async () => {
   const db = openDb(':memory:');
   let r = mockReqRes('POST', '/api/problems', {
-    problem: { title: 'T', category: 'ui', difficulty: 'easy', timeLimitSec: 60,
+    problem: { title: 'T', category: 'ui', difficulty: 'easy', timeLimitSec: 30,
       targetHtml: '<b>', targetCss: '', targetJs: '', detailWeight: 0.3 },
     criteria: [
       { kind: 'basic', description: 'bold', sortOrder: 0 },
@@ -76,7 +76,7 @@ test('PUT /api/problems/:id updates problem fields and replaces criteria', async
   const { id } = JSON.parse(r.res.body);
 
   r = mockReqRes('PUT', `/api/problems/${id}`, {
-    problem: { title: 'Updated', category: 'ui', difficulty: 'hard', timeLimitSec: 120,
+    problem: { title: 'Updated', category: 'ui', difficulty: 'hard', timeLimitSec: 60,
       targetHtml: '<i>', targetCss: 'x{}', targetJs: '', detailWeight: 0.5 },
     criteria: [{ kind: 'basic', description: 'italic', sortOrder: 0 }],
   });

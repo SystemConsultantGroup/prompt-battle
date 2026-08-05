@@ -1,68 +1,77 @@
-import type { ProblemSeed } from '../types.ts';
+﻿import type { ProblemSeed } from '../types.ts';
 
-// Shared body reset so each target renders centered on a neutral canvas.
 const CENTER = `body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f4f5f7;font-family:system-ui,-apple-system,sans-serif}`;
 
 export const dataDisplay: ProblemSeed[] = [
   {
-    title: 'Profile Card',
+    title: '사용자 프로필 카드',
     category: 'data-display',
     difficulty: 'normal',
-    timeLimitSec: 300,
+    timeLimitSec: 60,
     targetHtml: `<div class="card">
-  <div class="avatar">JD</div>
-  <div class="name">Jane Doe</div>
-  <div class="role">Product Designer</div>
-  <button class="follow">Follow</button>
+  <div class="avatar">JK</div>
+  <div class="name">김지훈</div>
+  <div class="role">프론트엔드 개발자</div>
+  <div class="stats">
+    <div class="stat"><div class="num">128</div><div class="lbl">게시물</div></div>
+    <div class="stat"><div class="num">4.2k</div><div class="lbl">팔로워</div></div>
+    <div class="stat"><div class="num">312</div><div class="lbl">팔로잉</div></div>
+  </div>
 </div>`,
     targetCss: `${CENTER}
-.card{background:#fff;border-radius:12px;padding:28px 24px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.08);width:220px}
-.avatar{width:64px;height:64px;border-radius:50%;background:#5b7cfa;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;margin:0 auto 14px}
-.name{font-size:17px;font-weight:600;color:#111827}
-.role{font-size:13px;color:#6b7280;margin-top:2px}
-.follow{margin-top:16px;background:#5b7cfa;color:#fff;border:0;padding:8px 24px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}`,
+.card{width:240px;background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,.08);text-align:center}
+.avatar{width:64px;height:64px;border-radius:50%;background:#5b7cfa;color:#fff;font-size:22px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+.name{font-size:17px;font-weight:700;color:#111827}
+.role{font-size:13px;color:#6b7280;margin:4px 0 16px}
+.stats{display:flex;gap:16px;justify-content:center}
+.stat{text-align:center}
+.num{font-size:16px;font-weight:700;color:#111827}
+.lbl{font-size:11px;color:#9ca3af;margin-top:2px}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'Initials "JD" appear inside a circular avatar' },
-      { kind: 'basic', description: 'The name "Jane Doe" and role "Product Designer" are both shown' },
-      { kind: 'basic', description: 'A "Follow" button is present' },
-      { kind: 'detail', description: 'The avatar has border-radius:50% making it circular' },
-      { kind: 'detail', description: 'The card is a distinct container with a background and box-shadow' },
-      { kind: 'detail', description: 'The name and role/subtitle are visually differentiated (different font-size or color)' },
+      { kind: 'basic', description: '이름, 역할, 아바타가 포함된 사용자 카드가 있다' },
+      { kind: 'basic', description: '게시물, 팔로워, 팔로잉과 같은 통계 수치가 3개 있다' },
+      { kind: 'basic', description: '카드 콘텐츠가 중앙 정렬된다' },
+      { kind: 'detail', description: '아바타가 원형(border-radius:50%)이다' },
+      { kind: 'detail', description: '통계 수치가 가로로 배열된다' },
+      { kind: 'detail', description: '카드에 그림자와 둥근 모서리가 있다' },
     ],
   },
   {
-    title: 'Product Card',
+    title: '제품 카드',
     category: 'data-display',
     difficulty: 'normal',
-    timeLimitSec: 300,
+    timeLimitSec: 60,
     targetHtml: `<div class="card">
-  <div class="image"></div>
-  <div class="title">Wireless Headphones</div>
-  <div class="price">$89.00</div>
-  <button class="add">Add to cart</button>
+  <div class="img-area"></div>
+  <div class="info">
+    <div class="title">무선 헤드폰</div>
+    <div class="price">89,000원</div>
+    <button class="btn">장바구니 담기</button>
+  </div>
 </div>`,
     targetCss: `${CENTER}
-.card{background:#fff;border-radius:12px;overflow:hidden;width:220px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
-.image{height:140px;background:#a5b4fc}
-.title{font-size:15px;font-weight:600;color:#111827;padding:14px 16px 0}
-.price{font-size:14px;color:#6b7280;padding:4px 16px 0}
-.add{display:block;width:calc(100% - 32px);margin:14px 16px 16px;background:#111827;color:#fff;border:0;padding:10px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}`,
+.card{width:220px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.img-area{height:160px;background:#e0e7ff}
+.info{padding:16px}
+.title{font-size:15px;font-weight:600;color:#111827;margin-bottom:6px}
+.price{font-size:18px;font-weight:700;color:#5b7cfa;margin-bottom:14px}
+.btn{width:100%;background:#5b7cfa;color:#fff;border:0;padding:10px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'A colored block represents the product image area (no real <img>)' },
-      { kind: 'basic', description: 'The product title "Wireless Headphones" and a price "$89.00" are shown' },
-      { kind: 'basic', description: 'An "Add to cart" button is present' },
-      { kind: 'detail', description: 'The image block has a fixed height forming a rectangle above the text' },
-      { kind: 'detail', description: 'The card has rounded corners and a shadow grouping it as one unit' },
-      { kind: 'detail', description: 'The price and title are visually separated (different font-size or color)' },
+      { kind: 'basic', description: '제품 이미지 영역(색 블록)이 있다' },
+      { kind: 'basic', description: '제품 이름 "무선 헤드폰"과 가격이 표시된다' },
+      { kind: 'basic', description: '"장바구니 담기" 버튼이 있다' },
+      { kind: 'detail', description: '이미지 블록이 텍스트 위에 직사각형 형태로 고정 높이를 가진다' },
+      { kind: 'detail', description: '카드에 둥근 모서리와 그림자가 있다' },
+      { kind: 'detail', description: '가격과 제목이 시각적으로 구분된다(다른 크기/색)' },
     ],
   },
   {
-    title: 'Avatar with Status',
+    title: '상태 표시 아바타',
     category: 'data-display',
     difficulty: 'easy',
-    timeLimitSec: 180,
+    timeLimitSec: 60,
     targetHtml: `<div class="avatar-wrap">
   <div class="avatar">AK</div>
   <span class="status"></span>
@@ -73,22 +82,22 @@ export const dataDisplay: ProblemSeed[] = [
 .status{position:absolute;right:2px;bottom:2px;width:14px;height:14px;border-radius:50%;background:#22c55e;border:2px solid #fff}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'A circular avatar with initials "AK" is present' },
-      { kind: 'basic', description: 'A small status dot is present on/over the avatar' },
-      { kind: 'basic', description: 'The status dot is styled with a green background color' },
-      { kind: 'detail', description: 'The avatar uses border-radius:50% to form a circle' },
-      { kind: 'detail', description: 'The status dot is absolutely positioned at a corner of the avatar' },
-      { kind: 'detail', description: 'The status dot has a border/outline separating it from the avatar' },
+      { kind: 'basic', description: '이니셜 "AK"가 있는 원형 아바타가 있다' },
+      { kind: 'basic', description: '아바타 위에 작은 상태 점이 있다' },
+      { kind: 'basic', description: '상태 점에 녹색 배경색이 있다' },
+      { kind: 'detail', description: '아바타가 border-radius:50%로 원형이다' },
+      { kind: 'detail', description: '상태 점이 absolute positioning으로 아바타 모서리에 있다' },
+      { kind: 'detail', description: '상태 점에 아바타와 구분되는 테두리/외곽이 있다' },
     ],
   },
   {
-    title: 'Stat / KPI Tile',
+    title: 'KPI 타일',
     category: 'data-display',
     difficulty: 'easy',
-    timeLimitSec: 180,
+    timeLimitSec: 60,
     targetHtml: `<div class="tile">
-  <div class="label">Revenue</div>
-  <div class="value">$48.2k</div>
+  <div class="label">매출</div>
+  <div class="value">4,820만원</div>
   <div class="delta">+12%</div>
 </div>`,
     targetCss: `${CENTER}
@@ -98,26 +107,26 @@ export const dataDisplay: ProblemSeed[] = [
 .delta{display:inline-block;margin-top:8px;background:#dcfce7;color:#166534;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'A label "Revenue" and a large value "$48.2k" are shown' },
-      { kind: 'basic', description: 'A "+12%" delta indicator is present' },
-      { kind: 'basic', description: 'The delta text is styled with green coloring (text and/or background)' },
-      { kind: 'detail', description: 'The value uses a noticeably larger font-size than the label (28px or greater)' },
-      { kind: 'detail', description: 'The delta is set apart as a small rounded badge/pill' },
-      { kind: 'detail', description: 'The label appears above the value, and the value above the delta, in reading order' },
+      { kind: 'basic', description: '"매출" 레이블과 큰 수치가 표시된다' },
+      { kind: 'basic', description: '"+12%" 증감 표시가 있다' },
+      { kind: 'basic', description: '증감 텍스트에 녹색 계열 색(텍스트 또는 배경)이 사용된다' },
+      { kind: 'detail', description: '수치가 레이블보다 눈에 띄게 큰 폰트 크기(28px 이상)이다' },
+      { kind: 'detail', description: '증감 표시가 작은 둥근 배지/알약 형태로 구분된다' },
+      { kind: 'detail', description: '레이블→수치→증감 순서로 읽기 순서에 배치된다' },
     ],
   },
   {
-    title: 'List Item with Meta',
+    title: '메타 정보가 있는 목록 항목',
     category: 'data-display',
     difficulty: 'easy',
-    timeLimitSec: 180,
+    timeLimitSec: 60,
     targetHtml: `<div class="item">
   <div class="avatar">RS</div>
   <div class="text">
-    <div class="title">Rachel Simmons</div>
-    <div class="subtitle">Commented on your post</div>
+    <div class="title">이지현</div>
+    <div class="subtitle">게시물에 댓글을 달았습니다</div>
   </div>
-  <div class="meta">2h ago</div>
+  <div class="meta">2시간 전</div>
 </div>`,
     targetCss: `${CENTER}
 .item{display:flex;align-items:center;background:#fff;border-radius:12px;padding:12px 16px;box-shadow:0 2px 10px rgba(0,0,0,.08);width:320px;gap:12px}
@@ -128,27 +137,27 @@ export const dataDisplay: ProblemSeed[] = [
 .meta{font-size:12px;color:#9ca3af;flex-shrink:0}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'A leading circular avatar with initials is present' },
-      { kind: 'basic', description: 'A title "Rachel Simmons" and subtitle "Commented on your post" are shown' },
-      { kind: 'basic', description: 'A trailing meta/time text "2h ago" is shown at the end of the row' },
-      { kind: 'detail', description: 'The row uses a flex layout placing avatar, text, and meta horizontally' },
-      { kind: 'detail', description: 'The avatar is circular (border-radius:50%)' },
-      { kind: 'detail', description: 'The title and subtitle are visually differentiated (different font-size, weight, or color)' },
+      { kind: 'basic', description: '이니셜이 있는 원형 아바타가 앞에 있다' },
+      { kind: 'basic', description: '이름과 부제 텍스트가 표시된다' },
+      { kind: 'basic', description: '"2시간 전" 같은 시간 메타 텍스트가 끝에 있다' },
+      { kind: 'detail', description: '아바타, 텍스트, 메타가 flex로 가로 배치된다' },
+      { kind: 'detail', description: '아바타가 원형(border-radius:50%)이다' },
+      { kind: 'detail', description: '이름과 부제가 폰트 크기/굵기/색으로 구분된다' },
     ],
   },
   {
-    title: 'Simple Data Table',
+    title: '간단한 데이터 테이블',
     category: 'data-display',
     difficulty: 'normal',
-    timeLimitSec: 300,
+    timeLimitSec: 60,
     targetHtml: `<table class="table">
   <thead>
-    <tr><th>Name</th><th>Role</th><th>Status</th></tr>
+    <tr><th>이름</th><th>역할</th><th>상태</th></tr>
   </thead>
   <tbody>
-    <tr><td>Alice Kim</td><td>Engineer</td><td><span class="badge active">Active</span></td></tr>
-    <tr><td>Ben Ortiz</td><td>Designer</td><td><span class="badge active">Active</span></td></tr>
-    <tr><td>Casey Lin</td><td>Manager</td><td><span class="badge inactive">Invited</span></td></tr>
+    <tr><td>김민준</td><td>개발자</td><td><span class="badge active">활성</span></td></tr>
+    <tr><td>이서연</td><td>디자이너</td><td><span class="badge active">활성</span></td></tr>
+    <tr><td>박지호</td><td>매니저</td><td><span class="badge inactive">초대됨</span></td></tr>
   </tbody>
 </table>`,
     targetCss: `${CENTER}
@@ -161,24 +170,24 @@ export const dataDisplay: ProblemSeed[] = [
 .badge.inactive{background:#fef3c7;color:#92400e}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'A <table> with a header row containing "Name", "Role", and "Status" is present' },
-      { kind: 'basic', description: 'The table body has exactly 3 data rows' },
-      { kind: 'basic', description: 'Each row shows a name, a role, and a status value' },
-      { kind: 'detail', description: 'The status values are styled as rounded badges/pills' },
-      { kind: 'detail', description: 'The header row is visually distinguished from body rows (background color and/or bold text)' },
-      { kind: 'detail', description: 'Rows are separated by borders/dividers (border-bottom on cells or rows)' },
+      { kind: 'basic', description: '"이름", "역할", "상태" 헤더가 있는 <table>이 있다' },
+      { kind: 'basic', description: '테이블 본문에 정확히 3개의 데이터 행이 있다' },
+      { kind: 'basic', description: '각 행에 이름, 역할, 상태 값이 표시된다' },
+      { kind: 'detail', description: '상태 값이 둥근 배지/알약 형태로 스타일링된다' },
+      { kind: 'detail', description: '헤더 행이 본문 행과 시각적으로 구분된다(배경색/굵기)' },
+      { kind: 'detail', description: '행 사이에 구분선(border-bottom)이 있다' },
     ],
   },
   {
-    title: 'Tag / Chip List',
+    title: '태그/칩 목록',
     category: 'data-display',
     difficulty: 'normal',
-    timeLimitSec: 300,
+    timeLimitSec: 60,
     targetHtml: `<div class="chips">
-  <span class="chip">Design</span>
-  <span class="chip">Frontend</span>
-  <span class="chip">Remote</span>
-  <span class="chip removable">Urgent <button class="remove" aria-label="Remove tag">×</button></span>
+  <span class="chip">디자인</span>
+  <span class="chip">프론트엔드</span>
+  <span class="chip">원격근무</span>
+  <span class="chip removable">긴급 <button class="remove" aria-label="태그 제거">×</button></span>
 </div>`,
     targetCss: `${CENTER}
 .chips{display:flex;flex-wrap:wrap;gap:8px;width:280px}
@@ -186,12 +195,12 @@ export const dataDisplay: ProblemSeed[] = [
 .remove{background:transparent;border:0;color:#4338ca;font-size:14px;line-height:1;cursor:pointer;padding:0}`,
     targetJs: '',
     criteria: [
-      { kind: 'basic', description: 'At least 3 chip/tag elements with a rounded pill shape (border-radius 999px or similar) are present' },
-      { kind: 'basic', description: 'The chip labels include "Design", "Frontend", and "Remote"' },
-      { kind: 'basic', description: 'One chip shows "Urgent" plus a visible "×" remove control' },
-      { kind: 'detail', description: 'The chips lay out in a row using flex with a gap between them' },
-      { kind: 'detail', description: 'The removable chip’s "×" is a distinct clickable element (e.g. a <button>)' },
-      { kind: 'detail', description: 'The chips share a consistent pill background/color style' },
+      { kind: 'basic', description: '알약 형태(border-radius 큰 값)의 칩 요소가 3개 이상 있다' },
+      { kind: 'basic', description: '"디자인", "프론트엔드", "원격근무" 레이블이 포함된다' },
+      { kind: 'basic', description: '"긴급" 칩에 "×" 제거 컨트롤이 있다' },
+      { kind: 'detail', description: '칩들이 flex + gap으로 가로 배열된다' },
+      { kind: 'detail', description: '"×" 제거 컨트롤이 클릭 가능한 별도 요소(<button>)이다' },
+      { kind: 'detail', description: '칩들이 일관된 알약 배경/색 스타일을 공유한다' },
     ],
   },
 ];

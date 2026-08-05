@@ -26,12 +26,15 @@ export function wrapUserPrompt(raw: string): string {
 export function buildGradePrompt(code: GeneratedCode, criteria: Criterion[]): string {
   const list = criteria.map(c => `- id=${c.id} (${c.kind}): ${c.description}`).join('\n');
   return [
-    'You are grading a generated web UI against a checklist. You are given the',
-    'GENERATED CODE and the CRITERIA only. For each criterion decide whether the',
-    'code satisfies it. Respond ONLY with JSON of the exact shape:',
+    'You are leniently grading a generated web UI. Be generous — give benefit of the doubt.',
+    'Criteria labeled "basic" check only for presence, count, shape, or text of elements.',
+    'Criteria labeled "detail" check for specific colors, positions, or layout arrangements.',
+    'For basic criteria: if the element/text/count roughly matches, pass it (rate=1).',
+    'For detail criteria: if it is close enough visually, give partial credit (rate 0.5–1).',
+    'Only give rate=0 when a criterion is completely absent or entirely wrong.',
+    'Respond ONLY with JSON of the exact shape:',
     '{"items":[{"id":<number>,"passed":<boolean>,"rate":<0..1>,"reason":"<short>"}]}',
-    'Include exactly one entry per criterion id. "rate" is partial-credit 0..1',
-    '(use 1 for fully passed, 0 for absent).',
+    'Include exactly one entry per criterion id.',
     '',
     'CRITERIA:', list,
     '',
