@@ -1,7 +1,8 @@
 export function connect(onMsg, onOpen) {
   let socket;
   const open = () => {
-    socket = new WebSocket(`ws://${location.host}`);
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    socket = new WebSocket(`${protocol}//${location.host}`);
     socket.addEventListener('message', (e) => onMsg(JSON.parse(e.data)));
     socket.addEventListener('close', () => setTimeout(open, 1000));
     if (onOpen) socket.addEventListener('open', () => onOpen());

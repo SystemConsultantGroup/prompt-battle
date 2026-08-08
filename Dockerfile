@@ -28,7 +28,9 @@ FROM base AS production
 # Copy production dependencies only.
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy application source and static files.
+# Copy application source and static files. package.json is required so tsx
+# detects "type": "module" and preserves top-level await as ESM.
+COPY package.json ./
 COPY src        ./src
 COPY public     ./public
 COPY seed       ./seed
