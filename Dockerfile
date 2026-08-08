@@ -10,7 +10,7 @@ FROM base AS deps
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-# Keep devDependencies (tsx, typescript) for the seed step.
+# Keep devDependencies (including TypeScript types) for the seed step.
 FROM base AS deps-full
 COPY package.json package-lock.json ./
 RUN npm ci
