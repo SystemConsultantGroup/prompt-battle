@@ -29,7 +29,7 @@ test('missing verdict counts as zero', () => {
 
 test('rankResults sorts by total then detail tiebreaker', () => {
   const mk = (u: string, total: number, detail: number) =>
-    ({ username: u, total, basicScore: 0, detailScore: detail, items: [] });
+    ({ username: u, total, basicScore: 0, detailScore: detail, prompt: '', items: [] });
   const ranked = rankResults([mk('a', 0.5, 0.1), mk('b', 0.5, 0.9), mk('c', 0.8, 0)]);
   assert.deepEqual(ranked.map(r => r.username), ['c', 'b', 'a']);
 });

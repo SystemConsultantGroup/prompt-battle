@@ -148,6 +148,12 @@ export class Hub {
       this.broadcast(code, { type: 'PROBLEM_SELECTED', problemId: sel.problem.id, timeLimitSec: res.timeLimitSec! });
       return;
     }
+    if (msg.type === 'SET_TIME_LIMIT') {
+      const res = this.mgr.setTimeLimit(code, msg.seconds);
+      if (!res.ok) { conn.send({ type: 'ERROR', message: res.error! }); return; }
+      this.broadcast(code, { type: 'TIME_LIMIT_SET', timeLimitSec: res.timeLimitSec! });
+      return;
+    }
     if (msg.type === 'START') {
       const room = this.mgr.getRoom(code);
       const res = this.mgr.startGame(code,

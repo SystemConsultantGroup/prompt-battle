@@ -6,7 +6,16 @@ import { spinReel } from '/host/roulette.js';
 
 const HOST_KEY = 'pb_host';
 const app = document.getElementById('app');
-let state = { phase: 'AUTH', room: null, mirror: {}, remaining: null, progress: null, ranking: null };
+let state = {
+  phase: 'AUTH', room: null, mirror: {}, remaining: null, progress: null,
+  ranking: null, variationId: null, timeLimitSec: null,
+};
+// Must stay in sync with TIME_LIMIT_OPTIONS in src/game/types.ts — the server
+// rejects anything outside that set, so a drift here shows up as an error toast.
+const TIME_LIMITS = [30, 60, 90, 120, 150];
+// Problem titles, cached from /api/problems so the lobby can name the armed
+// problem instead of showing a bare id.
+const problemTitles = new Map();
 const bus = connect(onMsg, onOpen);
 state.bus = bus;
 
@@ -97,7 +106,11 @@ function onMsg(msg) {
   }
   if (msg.type === 'STATE') {
     state.phase = msg.room.phase; state.room = msg.room;
-    state.problemId = msg.room.problemId; state.timeLimitSec = null;
+    state.problemId = msg.room.problemId;
+    // Carry the round length and active variation across a host reclaim so the
+    // lobby shows the real armed pick and the dashboard renders the real goal.
+    state.timeLimitSec = msg.room.timeLimitSec ?? null;
+    state.variationId = msg.room.activeVariationId ?? null;
     // Restore the countdown immediately on reclaim so the dashboard timer
     // isn't blank until the next TICK arrives (which then corrects skew).
     state.remaining = (msg.room.deadline != null && msg.room.phase === 'PLAYING')
@@ -116,7 +129,14 @@ function onMsg(msg) {
     // should just update the selection display immediately.
     if (state.pendingMode === 'roulette' || state.pendingMode === 'category') state.animateWinner = msg.problemId;
   }
-  if (msg.type === 'GAME_START') { state.phase = 'PLAYING'; state.problemId = msg.problemId; state.mirror = {}; state.ending = false; }
+  if (msg.type === 'TIME_LIMIT_SET') state.timeLimitSec = msg.timeLimitSec;
+  if (msg.type === 'GAME_START') {
+    state.phase = 'PLAYING'; state.problemId = msg.problemId;
+    // The dashboard renders the same goal the players see — including the
+    // variation the server rolled, not the base target.
+    state.variationId = msg.variationId ?? null;
+    state.mirror = {}; state.ending = false;
+  }
   if (msg.type === 'TICK') state.remaining = msg.remainingSec;
   if (msg.type === 'PROMPT_MIRROR') state.mirror[msg.username] = msg.text;
   if (msg.type === 'GAME_END') state.remaining = 0;
@@ -161,15 +181,22 @@ function renderAuth(errMsg) {
 
 async function fetchProblems() {
   const res = await fetch('/api/problems', { headers: { 'x-admin-password': state.pw } });
-  return res.ok ? res.json() : [];
+  const ps = res.ok ? await res.json() : [];
+  for (const p of ps) problemTitles.set(p.id, p.title);
+  return ps;
 }
 
 function renderLobby() {
+  const players = state.room?.players ?? [];
   const info = el('div', {},
-    el('h2', {}, `방 ${state.room?.code ?? ''}`),
-    el('p', {}, `참가자: ${state.room?.players.length ?? 0}명 — ${(state.room?.players ?? []).map(p => p.username).join(', ')}`));
+    el('p', { class: 'eyebrow' }, '방 코드'),
+    el('div', { class: 'roomcode' }, state.room?.code ?? '----'),
+    el('p', { class: 'eyebrow', style: 'margin-top:20px' }, `참가자 ${players.length}명`),
+    players.length
+      ? el('div', { class: 'modes' }, ...players.map(p => el('span', { class: 'chip' }, p.username)))
+      : el('p', {}, '아직 아무도 안 들어왔습니다.'));
   const reel = el('div', { class: 'reel' });
-  const startBtn = el('button', {}, '시작');
+  const startBtn = el('button', {}, '시작하기');
   startBtn.disabled = state.problemId == null;
   startBtn.addEventListener('click', () => state.bus.send({ type: 'START' }));
 
@@ -203,10 +230,37 @@ function renderLobby() {
     } }, c)));
   } }, '카테고리 룰렛');
 
+  // Round length. Disabled until a problem is armed, because selecting one
+  // re-seeds the length from that problem and would discard an earlier pick.
+  const timeBtns = TIME_LIMITS.map(sec => {
+    const b = el('button', {
+      class: state.timeLimitSec === sec ? 'on' : '',
+      onClick: () => state.bus.send({ type: 'SET_TIME_LIMIT', seconds: sec }),
+    }, `${sec}초`);
+    b.disabled = state.problemId == null;
+    return b;
+  });
+
+  // After a host reclaim the title cache is empty but a problem may already be
+  // armed. Backfill once (the flag stops a fetch→render→fetch loop when the
+  // id genuinely isn't in the list).
+  if (state.problemId != null && !problemTitles.has(state.problemId) && !state.titlesFetched) {
+    state.titlesFetched = true;
+    fetchProblems().then(() => { if (state.phase === 'LOBBY') render(); });
+  }
+  const title = state.problemId != null ? problemTitles.get(state.problemId) : null;
+  const selection = state.problemId != null
+    ? el('div', { class: 'selection' },
+        `선택된 문제: ${title ?? `#${state.problemId}`} — 제한시간 ${state.timeLimitSec ?? '?'}초`)
+    : el('div', { class: 'selection none' }, '아직 문제를 고르지 않았습니다.');
+
   mount(app, el('div', { class: 'card wide' }, info,
+    el('p', { class: 'eyebrow', style: 'margin-top:20px' }, '문제 고르기'),
     el('div', { class: 'modes' }, pickDirect, pickVariation, spinBtn, catBtn),
     reel,
-    el('p', {}, state.problemId != null ? `선택된 문제 #${state.problemId} — ${state.timeLimitSec}초` : '선택된 문제 없음'),
+    el('p', { class: 'eyebrow' }, '제한시간'),
+    el('div', { class: 'timeopts' }, ...timeBtns),
+    selection,
     startBtn));
 
   // if a roulette selection just arrived, animate then reveal
