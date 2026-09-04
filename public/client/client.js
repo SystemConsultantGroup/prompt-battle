@@ -1,5 +1,5 @@
 import { connect } from '/shared/ws.js';
-import { el, mount } from '/shared/dom.js';
+import { el, mount, timerClass, timerText } from '/shared/dom.js';
 
 const JOIN_KEY = 'pb_join';
 const app = document.getElementById('app');
@@ -52,7 +52,12 @@ function clearStoredJoin() {
 
 function onOpen() {
   const saved = storedJoin();
-  if (saved) bus.send({ type: 'JOIN', roomCode: saved.roomCode, username: saved.username });
+  if (!saved) return;
+  // Restore the identity too, not just the socket: the result screen looks up
+  // "my" row by _pendingName, which is otherwise blank after an auto-rejoin.
+  _pendingCode = saved.roomCode;
+  _pendingName = saved.username;
+  bus.send({ type: 'JOIN', roomCode: saved.roomCode, username: saved.username });
 }
 
 // Pending join inputs — kept across ERROR so values are not wiped.
@@ -162,6 +167,7 @@ function renderJoin(errMsg) {
 function renderLobby() {
   mount(app, el('div', { class: 'card' },
     el('h2', {}, '호스트를 기다리는 중…'),
+    el('p', { class: 'eyebrow' }, `참가자 ${state.players.length}명`),
     el('ul', {}, ...state.players.map(p => el('li', {}, p.username)))));
 }
 let debounce;
@@ -180,17 +186,20 @@ function renderEditor() {
     clearTimeout(debounce);
     debounce = setTimeout(() => bus.send({ type: 'PROMPT_UPDATE', text: ta.value }), 300);
   });
-  const timer = el('div', { class: 'timer' }, state.remaining == null ? '…' : `${state.remaining}초`);
+  const timer = el('div', { class: timerClass(state.remaining) }, timerText(state.remaining));
   editorTimerEl = timer;
   editorTextareaEl = ta;
   mount(app, el('div', { class: 'play' },
-    el('div', { class: 'goal' }, el('h3', {}, '목표'), frame),
-    el('div', { class: 'work' }, timer, ta)));
+    el('div', { class: 'goal' }, el('h3', {}, '목표 화면'), frame),
+    el('div', { class: 'work' }, timer, el('h3', {}, '내 프롬프트'), ta)));
 }
 // PLAYING is already mounted (e.g. TICK/GAME_END arrived) — patch only the
 // mutable bits in place so the textarea/iframe are never destroyed.
 function updateEditor() {
-  if (editorTimerEl) editorTimerEl.textContent = state.remaining == null ? '…' : `${state.remaining}초`;
+  if (editorTimerEl) {
+    editorTimerEl.textContent = timerText(state.remaining);
+    editorTimerEl.className = timerClass(state.remaining);
+  }
   if (editorTextareaEl) editorTextareaEl.disabled = !!state.locked;
 }
 function renderGrading() {
@@ -199,8 +208,17 @@ function renderGrading() {
     el('p', {}, p ? `${p.done}/${p.total}` : '')));
 }
 function renderResult() {
-  mount(app, el('div', { class: 'card' }, el('h2', {}, '결과'),
-    el('ol', {}, ...(state.ranking ?? []).map(r =>
-      el('li', {}, `${r.username} — ${Math.round(r.total * 100)}%`)))));
+  const ranking = state.ranking ?? [];
+  // Your own row carries the prompt you submitted — the host screen shows
+  // everyone's, but on your own device you get yours back to compare.
+  const mine = ranking.find(r => r.username === _pendingName);
+  const minePrompt = (mine?.prompt ?? '').trim();
+  mount(app, el('div', { class: 'card' },
+    el('h2', {}, '결과'),
+    el('ul', { class: 'ranklist' }, ...ranking.map(r =>
+      el('li', {}, r.username, el('span', { class: 'score' }, `${Math.round(r.total * 100)}%`)))),
+    ...(mine ? [el('div', { class: 'rprompt' },
+      el('div', { class: 'rprompt-label' }, '내가 쓴 프롬프트'),
+      el('pre', { class: minePrompt ? '' : 'empty' }, minePrompt || '(작성 안 함)'))] : [])));
 }
 render();

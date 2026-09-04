@@ -14,12 +14,19 @@ export function renderResults(app, state) {
     const frame = r.genToken
       ? el('iframe', { class: 'result-frame', src: `/render/gen/${r.genToken}`, sandbox: 'allow-scripts' })
       : null;
+    // The submitted prompt, so the room can see what actually earned the
+    // score. Set as text (never innerHTML) — it is untrusted player input.
+    const promptText = (r.prompt ?? '').trim();
+    const prompt = el('div', { class: 'rprompt' },
+      el('div', { class: 'rprompt-label' }, '작성한 프롬프트'),
+      el('pre', { class: promptText ? '' : 'empty' }, promptText || '(작성 안 함)'));
     return el('div', { class: 'result' },
       el('div', { class: 'rhead' },
-        el('span', { class: 'rank' }, `#${i + 1}`),
+        el('span', { class: 'rank' }, `${i + 1}`),
         el('span', { class: 'ruser' }, r.username),
         el('span', { class: 'rtotal' }, `${Math.round(r.total * 100)}%`)),
       el('div', { class: 'rsub' }, `기본 ${Math.round(r.basicScore * 100)}% · 디테일 ${Math.round(r.detailScore * 100)}%`),
+      prompt,
       el('ul', { class: 'ritems' }, ...items),
       ...(frame ? [frame] : []));
   });

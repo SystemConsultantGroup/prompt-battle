@@ -1,4 +1,4 @@
-import type { Phase, RoomSummary } from './types.ts';
+import { isTimeLimitOption, type Phase, type RoomSummary } from './types.ts';
 import type { Problem } from '../db/index.ts';
 
 export type PlayerState = {
@@ -19,6 +19,9 @@ export type Room = {
   players: Map<string, PlayerState>;
   problemId: number | null;
   activeVariationId: number | null;
+  /** Effective round length. Seeded from the problem on selection, then
+   *  replaced by `setTimeLimit` if the host picks a different one. */
+  timeLimitSec: number | null;
   deadline: number | null;
   timer: unknown | null;
   evictTimer: unknown | null;
@@ -51,7 +54,7 @@ export class GameManager {
     this.rooms.set(code, {
       code, phase: 'LOBBY', maxPlayers: opts.maxPlayers,
       players: new Map(), problemId: null, activeVariationId: null,
-      deadline: null, timer: null, evictTimer: null,
+      timeLimitSec: null, deadline: null, timer: null, evictTimer: null,
     });
     return code;
   }
@@ -124,6 +127,7 @@ export class GameManager {
       remainingSec,
       problemId: room.problemId,
       activeVariationId: room.activeVariationId,
+      timeLimitSec: room.timeLimitSec,
       deadline: room.deadline,
     };
   }
@@ -143,7 +147,25 @@ export class GameManager {
     if (!problem) return { ok: false, error: 'unknown problem' };
     room.problemId = problemId;
     room.activeVariationId = null;
+    // Picking a problem re-seeds the round length from that problem's default.
+    // A host who wants something else picks it again after selecting — this
+    // way the displayed time always belongs to the problem now on screen.
+    room.timeLimitSec = problem.timeLimitSec;
     return { ok: true, timeLimitSec: problem.timeLimitSec };
+  }
+  /**
+   * Override the round length for the next round. Lobby-only (changing it
+   * mid-round would desync every client's countdown against `deadline`), and
+   * restricted to the offered options.
+   */
+  setTimeLimit(code: string, seconds: number):
+      { ok: boolean; error?: string; timeLimitSec?: number } {
+    const room = this.rooms.get(code);
+    if (!room) return { ok: false, error: 'unknown room' };
+    if (room.phase !== 'LOBBY') return { ok: false, error: 'not in lobby' };
+    if (!isTimeLimitOption(seconds)) return { ok: false, error: 'bad time limit' };
+    room.timeLimitSec = seconds;
+    return { ok: true, timeLimitSec: seconds };
   }
   setActiveVariation(code: string, variationId: number | null): void {
     const room = this.rooms.get(code);
@@ -156,7 +178,8 @@ export class GameManager {
     if (room.phase !== 'LOBBY') return { ok: false, error: 'not in lobby' };
     const problem = this.deps.getProblem(room.problemId)!;
     room.phase = 'PLAYING';
-    room.deadline = this.deps.now() + problem.timeLimitSec * 1000;
+    const seconds = room.timeLimitSec ?? problem.timeLimitSec;
+    room.deadline = this.deps.now() + seconds * 1000;
     room.timer = this.sched().setInterval(() => {
       const remaining = Math.max(0, Math.ceil((room.deadline! - this.deps.now()) / 1000));
       onTick(remaining);
@@ -185,7 +208,8 @@ export class GameManager {
     const room = this.rooms.get(code);
     if (!room) return;
     if (room.timer) { this.sched().clearInterval(room.timer); room.timer = null; }
-    room.phase = 'LOBBY'; room.problemId = null; room.activeVariationId = null; room.deadline = null;
+    room.phase = 'LOBBY'; room.problemId = null; room.activeVariationId = null;
+    room.timeLimitSec = null; room.deadline = null;
     for (const p of room.players.values()) p.prompt = '';
   }
   removeRoom(code: string): void {

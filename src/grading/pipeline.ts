@@ -41,7 +41,7 @@ export async function gradeRoom(args: {
     const genToken = code && args.storeCode ? args.storeCode(code) : undefined;
     const s = computeScore(criteria, verdict.items, problem.detailWeight);
     done++; args.onProgress?.(done, submissions.length);
-    return { username: sub.username, total: s.total,
+    return { username: sub.username, total: s.total, prompt: sub.prompt,
       basicScore: s.basicScore, detailScore: s.detailScore, items: s.items, genToken };
   });
   return rankResults(results);

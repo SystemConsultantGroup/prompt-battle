@@ -1,39 +1,68 @@
-/* ---- Design tokens -------------------------------------------------- */
+/* ============================================================================
+   Prompt Battle — "after hours" party/cartoon theme
+   ----------------------------------------------------------------------------
+   The look is built from four moves, applied consistently everywhere:
+     1. Ink outline      — every surface gets a 3px near-black border.
+     2. Hard shadow      — a solid offset block, never a blur. Sticker depth.
+     3. Saturated pop    — hot pink / cyan / lime / yellow on deep purple.
+     4. Slight tilt      — cards sit a fraction of a degree off-axis.
+   Interactive things lift toward the cursor (shadow grows) and slam down on
+   press (shadow collapses to zero). That press/lift pair is the whole
+   personality; keep it on anything clickable.
+   ========================================================================== */
+
 :root {
-  --bg: #0e1120;
-  --surface: #171c30;
-  --surface-2: #10152a;
+  /* Stage */
+  --bg: #1e0838;
+  --bg-2: #2f0d59;
+  --surface: #3a1266;
+  --surface-2: #290a4d;
   /* inputs, insets */
-  --elevated: #1c2238;
+  --elevated: #4a1a80;
   /* cards on cards */
-  --border: #2a3050;
-  --border-soft: #222845;
 
-  --text: #e8eaf3;
-  --muted: #9aa2c8;
-  --faint: #6b73a0;
+  /* The outline + hard-shadow color. Purple-black, never pure #000. */
+  --ink: #120022;
 
-  --accent: #5b7cfa;
-  --accent-hover: #6d8bff;
-  --accent-press: #4a67e0;
-  --on-accent: #ffffff;
+  --text: #fff2fb;
+  --muted: #d3a9f0;
+  --faint: #9b71c4;
 
-  --ok: #7ee0a0;
-  --no: #e88a8a;
-  --gold: #ffd166;
-  --silver: #ccd4e6;
-  --bronze: #e0a06b;
+  /* Confetti palette — also the categorical set for medals/accents. */
+  --pink: #ff2d87;
+  --pink-hot: #ff5ba3;
+  --purple: #b45cff;
+  --cyan: #29dced;
+  --lime: #b6f230;
+  --yellow: #ffd93d;
+  --orange: #ff7a30;
 
-  --r-sm: 6px;
-  --r-md: 8px;
-  --r-lg: 12px;
+  --accent: var(--pink);
+  --on-accent: #fff;
+
+  --ok: var(--lime);
+  --no: #ff6b8a;
+  --gold: var(--yellow);
+  --silver: #e6e9ff;
+  --bronze: var(--orange);
+
+  /* Chunky, cartoon-scale radii. */
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --r-pill: 999px;
+
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
   --sp-4: 16px;
   --sp-6: 24px;
-  --ring: 0 0 0 3px rgba(91, 124, 250, 0.4);
-  --shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+
+  --line: 3px;
+  --pop: 4px 4px 0 var(--ink);
+  --pop-lg: 7px 7px 0 var(--ink);
+  --pop-xl: 10px 10px 0 var(--ink);
+  --ring: 0 0 0 4px var(--cyan);
 }
 
 * {
@@ -49,20 +78,39 @@ body {
   font-family: system-ui, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
   margin: 0;
   min-height: 100dvh;
-  background: radial-gradient(600px 800px at 50% -10%, #141a30 0%, var(--bg) 60%);
   color: var(--text);
   line-height: 1.5;
+  background-color: var(--bg);
+  /* Confetti: three dot layers at different scales, over a stage-light wash.
+     Fixed attachment so the sprinkles don't slide when a panel scrolls. */
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(255, 45, 135, .10) 0 2px, transparent 3px),
+    radial-gradient(circle at 78% 34%, rgba(41, 220, 237, .12) 0 3px, transparent 4px),
+    radial-gradient(circle at 44% 76%, rgba(182, 242, 48, .10) 0 2px, transparent 3px),
+    radial-gradient(900px 600px at 50% -15%, var(--bg-2) 0%, transparent 70%),
+    radial-gradient(700px 500px at 100% 100%, rgba(180, 92, 255, .22) 0%, transparent 65%);
+  background-size: 190px 190px, 260px 260px, 150px 150px, 100% 100%, 100% 100%;
+  background-attachment: fixed;
 }
 
 h1,
 h2,
 h3,
 h4 {
-  line-height: 1.25;
+  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: -0.03em;
 }
 
 h1 {
-  letter-spacing: -0.02em;
+  font-size: clamp(30px, 5vw, 44px);
+  text-transform: uppercase;
+  /* Cartoon outline: a hard ink offset behind the glyphs. */
+  text-shadow: 3px 3px 0 var(--ink);
+}
+
+h2 {
+  text-shadow: 2px 2px 0 var(--ink);
 }
 
 p {
@@ -70,7 +118,7 @@ p {
 }
 
 a {
-  color: var(--accent);
+  color: var(--cyan);
 }
 
 input,
@@ -84,26 +132,31 @@ select {
   color: var(--faint);
 }
 
-/* Thin, theme-matched scrollbars for the inner scroll regions */
+::selection {
+  background: var(--lime);
+  color: var(--ink);
+}
+
+/* Chunky scrollbars to match the outline language. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+  scrollbar-color: var(--purple) transparent;
 }
 
 *::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 6px;
-  border: 2px solid transparent;
+  background: var(--purple);
+  border-radius: var(--r-pill);
+  border: 3px solid transparent;
   background-clip: padding-box;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #364066;
+  background: var(--pink);
   background-clip: padding-box;
 }
 
@@ -114,9 +167,9 @@ textarea {
   display: block;
   width: 100%;
   margin: var(--sp-2) 0;
-  padding: 12px;
+  padding: 13px 14px;
   border-radius: var(--r-md);
-  border: 1px solid var(--border-soft);
+  border: var(--line) solid var(--ink);
   font-size: 16px;
 }
 
@@ -125,43 +178,72 @@ textarea,
 select {
   background: var(--surface-2);
   color: var(--text);
-  transition: border-color .15s ease, box-shadow .15s ease;
+  font-weight: 600;
+  box-shadow: inset 3px 3px 0 rgba(18, 0, 34, .45);
+  transition: box-shadow .12s ease, background .12s ease;
 }
 
 input:focus,
 textarea:focus,
 select:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: var(--ring);
+  background: var(--surface);
+  box-shadow: inset 3px 3px 0 rgba(18, 0, 34, .3), var(--ring);
 }
 
 button {
-  border: 1px solid transparent;
-  background: var(--accent);
+  background: var(--pink);
   color: var(--on-accent);
-  font-weight: 600;
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: .01em;
   cursor: pointer;
-  transition: background .15s ease, transform .05s ease, box-shadow .15s ease, opacity .15s ease;
+  box-shadow: var(--pop);
+  transition: transform .1s cubic-bezier(.2, .9, .3, 1.4), box-shadow .1s ease, background .12s ease;
 }
 
-button:hover {
-  background: var(--accent-hover);
+button:hover:not(:disabled) {
+  background: var(--pink-hot);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--pop-lg);
 }
 
-button:active {
-  background: var(--accent-press);
-  transform: translateY(1px);
+button:active:not(:disabled) {
+  /* Slam: the card meets its own shadow. */
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--ink);
 }
 
 button:focus-visible {
   outline: none;
-  box-shadow: var(--ring);
+  box-shadow: var(--pop), var(--ring);
 }
 
 button:disabled {
-  opacity: .45;
+  background: var(--faint);
+  opacity: .6;
   cursor: not-allowed;
+  box-shadow: var(--pop);
+}
+
+/* Secondary/quiet button — same physics, cooler fill. */
+button.ghost {
+  background: var(--elevated);
+  color: var(--text);
+}
+
+button.ghost:hover:not(:disabled) {
+  background: var(--purple);
+}
+
+/* Selected state for toggle-ish button groups (time limit, modes). */
+button.on {
+  background: var(--lime);
+  color: var(--ink);
+}
+
+button.on:hover:not(:disabled) {
+  background: var(--lime);
 }
 
 ul {
@@ -171,29 +253,84 @@ ul {
 }
 
 li {
-  padding: var(--sp-2) var(--sp-3);
+  padding: 10px var(--sp-3);
   background: var(--surface-2);
+  border: var(--line) solid var(--ink);
   border-radius: var(--r-sm);
-  margin: var(--sp-1) 0;
+  margin: 6px 0;
+  font-weight: 600;
 }
 
 /* ---- Centered cards: join / lobby / roulette ------------------------ */
 .card {
-  max-width: 480px;
-  margin: 8vh auto;
+  max-width: 500px;
+  margin: 7vh auto;
   padding: var(--sp-6);
   background: var(--surface);
-  border: 1px solid var(--border-soft);
+  border: var(--line) solid var(--ink);
   border-radius: var(--r-lg);
-  box-shadow: var(--shadow);
+  box-shadow: var(--pop-xl);
+  /* The sticker tilt. Undone on the wide variants, which read as panels. */
+  rotate: -.6deg;
+  animation: pop-in .3s cubic-bezier(.2, .9, .3, 1.35);
 }
 
 .card h1 {
   margin-top: 0;
+  color: var(--yellow);
 }
 
 .card.wide {
-  max-width: 900px;
+  max-width: 980px;
+  rotate: 0deg;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(.94) translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Small uppercase section label, used above panels. */
+.eyebrow {
+  margin: 0 0 var(--sp-2);
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .16em;
+}
+
+/* Room code — the thing on the projector everyone squints at. */
+.roomcode {
+  display: inline-block;
+  padding: 6px 18px;
+  background: var(--yellow);
+  color: var(--ink);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--r-pill);
+  box-shadow: var(--pop);
+  font-size: clamp(26px, 4vw, 40px);
+  font-weight: 900;
+  letter-spacing: .16em;
+  font-variant-numeric: tabular-nums;
+  rotate: -1.5deg;
+}
+
+.chip {
+  display: inline-block;
+  padding: 4px 12px;
+  background: var(--elevated);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 /* ---- Player editor — app-like fixed fit ----------------------------- */
@@ -212,20 +349,28 @@ li {
   min-height: 0;
 }
 
-.goal h3 {
+.goal h3,
+.work h3 {
   margin: 0 0 var(--sp-2);
-  color: var(--muted);
-  font-size: 13px;
+  color: var(--cyan);
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: .08em;
+  letter-spacing: .16em;
+}
+
+/* Any iframe showing rendered UI: white paper on an ink outline. */
+.target,
+.result-frame,
+.goal-frame {
+  border: var(--line) solid var(--ink);
+  border-radius: var(--r-md);
+  background: white;
+  box-shadow: var(--pop);
 }
 
 .target {
   flex: 1;
   min-height: 0;
-  border: 1px solid var(--border-soft);
-  border-radius: var(--r-md);
-  background: white;
 }
 
 .prompt {
@@ -233,74 +378,146 @@ li {
   min-height: 0;
   resize: none;
   font-size: 15px;
-  line-height: 1.55;
+  line-height: 1.6;
+  font-weight: 500;
   padding: var(--sp-3);
-  border-radius: var(--r-md);
 }
 
+/* Countdown. Turns yellow then hot pink as it runs out (see .warn/.danger). */
 .timer {
-  font-size: 30px;
-  font-weight: 800;
+  font-size: clamp(34px, 6vw, 54px);
+  font-weight: 900;
   text-align: center;
   margin-bottom: var(--sp-2);
   font-variant-numeric: tabular-nums;
-  letter-spacing: .02em;
+  letter-spacing: -.02em;
+  color: var(--lime);
+  text-shadow: 4px 4px 0 var(--ink);
 }
 
-/* ---- Host dashboard — fixed fit; player grid scrolls ---------------- */
+.timer.warn {
+  color: var(--yellow);
+}
+
+.timer.danger {
+  color: var(--pink-hot);
+  animation: pulse .6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.07);
+  }
+}
+
+/* ---- Host dashboard — goal panel beside the live prompt grid -------- */
 .dash {
   display: flex;
   flex-direction: column;
   height: 100dvh;
   padding: var(--sp-4);
-  gap: var(--sp-2);
+  gap: var(--sp-3);
 }
 
-.dash .timer {
+.dash-top {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  flex-shrink: 0;
+}
+
+.dash-top .timer {
   margin-bottom: 0;
+  text-align: left;
 }
 
-.dash>button {
+.dash-top button {
   width: auto;
-  align-self: center;
-  padding: 10px 20px;
+  margin: 0 0 0 auto;
+  padding: 12px 24px;
+}
+
+/* Goal on the left so the room can see the brief; prompts on the right. */
+.dash-main {
+  display: grid;
+  grid-template-columns: minmax(280px, 34%) 1fr;
+  gap: var(--sp-4);
+  flex: 1;
+  min-height: 0;
+}
+
+.dash-goal {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.goal-frame {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: var(--sp-3);
-  flex: 1;
   min-height: 0;
   overflow-y: auto;
   align-content: start;
-  padding-right: var(--sp-1);
+  padding: 2px var(--sp-1) var(--sp-2) 2px;
 }
 
 .pcard {
   background: var(--surface);
-  border: 1px solid var(--border-soft);
+  border: var(--line) solid var(--ink);
   border-radius: var(--r-md);
   padding: var(--sp-3);
+  box-shadow: var(--pop);
+}
+
+/* Rotate alternating cards a hair so the grid feels hand-placed. */
+.pcard:nth-child(odd) {
+  rotate: -.5deg;
+}
+
+.pcard:nth-child(even) {
+  rotate: .5deg;
 }
 
 .pcard.disconnected {
-  opacity: .5;
+  opacity: .45;
+  filter: grayscale(.6);
 }
 
 .pname {
-  font-weight: 700;
-  margin-bottom: var(--sp-1);
+  font-weight: 900;
+  margin-bottom: var(--sp-2);
+  color: var(--yellow);
+  text-transform: uppercase;
+  letter-spacing: .02em;
 }
 
 .ptext {
   white-space: pre-wrap;
   word-break: break-word;
   font-size: 13px;
-  color: var(--muted);
-  max-height: 160px;
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 2px solid var(--ink);
+  border-radius: var(--r-sm);
+  padding: var(--sp-2);
+  max-height: 170px;
   overflow: auto;
   margin: 0;
+  font-family: inherit;
 }
 
 /* ---- Results — fixed fit; cards laid out horizontally --------------- */
@@ -314,90 +531,160 @@ li {
 
 .results-wrap h2 {
   margin: 0;
+  font-size: clamp(24px, 4vw, 38px);
+  text-transform: uppercase;
+  color: var(--yellow);
 }
 
 .results-wrap>button {
   width: auto;
   align-self: center;
-  padding: 10px 24px;
+  padding: 13px 30px;
+  flex-shrink: 0;
 }
 
 .results-row {
   display: flex;
-  gap: var(--sp-3);
+  gap: var(--sp-4);
   flex: 1;
   min-height: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  padding-bottom: var(--sp-2);
+  padding: 4px var(--sp-1) var(--sp-3) 4px;
 }
 
 .result {
   background: var(--surface);
-  border: 1px solid var(--border-soft);
+  border: var(--line) solid var(--ink);
   border-radius: var(--r-lg);
   padding: var(--sp-4);
   display: flex;
   flex-direction: column;
-  min-width: 300px;
-  max-width: 340px;
+  min-width: 320px;
+  max-width: 360px;
   overflow-y: auto;
+  box-shadow: var(--pop-lg);
 }
 
 .rhead {
   display: flex;
   gap: var(--sp-3);
-  align-items: baseline;
+  align-items: center;
   font-size: 18px;
+  flex-shrink: 0;
 }
 
+/* Rank sits in a solid medal disc — the loudest thing on the card. */
 .rank {
-  font-weight: 800;
-  color: var(--accent);
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border: var(--line) solid var(--ink);
+  border-radius: var(--r-pill);
+  background: var(--elevated);
+  color: var(--text);
+  font-weight: 900;
+  font-size: 17px;
   font-variant-numeric: tabular-nums;
+  box-shadow: var(--pop);
+  rotate: -6deg;
 }
 
-/* Medal colors for the podium */
 .results-row .result:nth-child(1) .rank {
-  color: var(--gold);
+  background: var(--gold);
+  color: var(--ink);
 }
 
 .results-row .result:nth-child(2) .rank {
-  color: var(--silver);
+  background: var(--silver);
+  color: var(--ink);
 }
 
 .results-row .result:nth-child(3) .rank {
-  color: var(--bronze);
+  background: var(--bronze);
+  color: var(--ink);
 }
 
+/* Winner gets a lime halo so it reads from the back of the room. */
 .results-row .result:nth-child(1) {
-  border-color: rgba(255, 209, 102, .5);
+  box-shadow: var(--pop-lg), 0 0 0 4px var(--lime);
+  rotate: -.8deg;
 }
 
 .ruser {
-  font-weight: 600;
+  font-weight: 900;
+  text-transform: uppercase;
+  word-break: break-word;
 }
 
 .rtotal {
   margin-left: auto;
-  font-weight: 800;
+  font-weight: 900;
+  font-size: 24px;
+  color: var(--lime);
   font-variant-numeric: tabular-nums;
+  text-shadow: 2px 2px 0 var(--ink);
 }
 
 .rsub {
   color: var(--muted);
   font-size: 13px;
-  margin: var(--sp-2) 0;
+  font-weight: 700;
+  margin: var(--sp-3) 0 var(--sp-2);
+  flex-shrink: 0;
+}
+
+/* The submitted prompt, shown so the room can see what earned the score. */
+.rprompt {
+  flex-shrink: 0;
+  margin: 0 0 var(--sp-3);
+  border: 2px solid var(--ink);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.rprompt-label {
+  padding: 5px var(--sp-2);
+  background: var(--cyan);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+}
+
+.rprompt pre {
+  margin: 0;
+  padding: var(--sp-2);
+  max-height: 130px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.rprompt pre.empty {
+  color: var(--faint);
+  font-style: italic;
 }
 
 .ritems {
   font-size: 13px;
+  margin: 0 0 var(--sp-3);
 }
 
 .ritems li {
   background: transparent;
-  padding: 3px 0;
+  border: none;
+  padding: 4px 0;
   margin: 0;
+  font-weight: 600;
 }
 
 .ritems li.ok {
@@ -409,37 +696,143 @@ li {
 }
 
 .ritems li.partial {
-  color: var(--gold);
+  color: var(--yellow);
 }
 
 .result-frame {
   width: 100%;
-  height: 200px;
+  height: 210px;
   flex-shrink: 0;
-  border: 1px solid var(--border-soft);
-  border-radius: var(--r-md);
-  background: white;
-  margin-top: var(--sp-3);
+  margin-top: auto;
 }
 
-/* ---- Host lobby: mode buttons + roulette reel ----------------------- */
+/* Player-side result list — podium ordering, no detail. */
+.ranklist {
+  counter-reset: rank;
+}
+
+.ranklist li {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-weight: 800;
+}
+
+.ranklist li::before {
+  counter-increment: rank;
+  content: counter(rank);
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border: 2px solid var(--ink);
+  border-radius: var(--r-pill);
+  background: var(--elevated);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.ranklist li:nth-child(1)::before {
+  background: var(--gold);
+  color: var(--ink);
+}
+
+.ranklist li:nth-child(2)::before {
+  background: var(--silver);
+  color: var(--ink);
+}
+
+.ranklist li:nth-child(3)::before {
+  background: var(--bronze);
+  color: var(--ink);
+}
+
+.ranklist li .score {
+  margin-left: auto;
+  color: var(--lime);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Host lobby: mode buttons, time limit, roulette reel ------------ */
 .modes {
   display: flex;
-  gap: var(--sp-2);
+  gap: var(--sp-3);
   flex-wrap: wrap;
+  margin: var(--sp-3) 0;
 }
 
 .modes button {
   width: auto;
+  margin: 0;
+}
+
+/* Time-limit picker — a row of pill toggles. */
+.timeopts {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin: 0 0 var(--sp-4);
+}
+
+.timeopts button {
+  width: auto;
+  margin: 0;
+  padding: 9px 18px;
+  border-radius: var(--r-pill);
+  background: var(--elevated);
+  font-variant-numeric: tabular-nums;
+}
+
+.timeopts button:hover:not(:disabled) {
+  background: var(--purple);
+}
+
+.timeopts button.on {
+  background: var(--lime);
+  color: var(--ink);
+}
+
+/* The currently-armed problem + round length. */
+.selection {
+  padding: var(--sp-3) var(--sp-4);
+  margin: 0 0 var(--sp-4);
+  background: var(--surface-2);
+  border: var(--line) dashed var(--purple);
+  border-radius: var(--r-md);
+  font-weight: 700;
+}
+
+.selection.none {
+  color: var(--faint);
 }
 
 .reel {
   overflow: hidden;
-  height: 90px;
+  min-height: 96px;
+  max-height: 260px;
+  overflow-y: auto;
   margin: var(--sp-3) 0;
+  padding: var(--sp-2);
   border-radius: var(--r-md);
   background: var(--surface-2);
-  border: 1px solid var(--border-soft);
+  border: var(--line) solid var(--ink);
+  box-shadow: inset 4px 4px 0 rgba(18, 0, 34, .4);
+}
+
+/* When the reel holds a picker list rather than a spinning strip. */
+.reel button {
+  width: auto;
+  display: inline-block;
+  margin: 4px;
+  padding: 8px 14px;
+  font-size: 13px;
+  background: var(--elevated);
+  border-radius: var(--r-pill);
+}
+
+.reel button:hover:not(:disabled) {
+  background: var(--pink);
 }
 
 .reel-strip {
@@ -452,16 +845,23 @@ li {
 .reel-card {
   min-width: 160px;
   height: 50px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
   background: var(--elevated);
+  border: var(--line) solid var(--ink);
   border-radius: var(--r-md);
   padding: 0 var(--sp-3);
+  font-weight: 800;
+  font-size: 13px;
 }
 
 .reel-win {
-  outline: 3px solid var(--accent);
+  background: var(--lime);
+  color: var(--ink);
+  box-shadow: var(--pop);
 }
 
 /* ---- Admin console — two columns; vertical page scroll allowed ------ */
@@ -483,7 +883,8 @@ textarea {
 }
 
 select {
-  padding: 10px;
+  padding: 11px;
+  border: var(--line) solid var(--ink);
   border-radius: var(--r-md);
 }
 
@@ -505,7 +906,7 @@ select {
   margin: var(--sp-4) 0;
   padding: var(--sp-3);
   background: var(--surface-2);
-  border: 1px solid var(--border-soft);
+  border: var(--line) solid var(--ink);
   border-radius: var(--r-md);
 }
 
@@ -526,63 +927,76 @@ select {
   margin-left: auto;
 }
 
+/* Admin list rows that carry an inline action (accounts, problems): keep the
+   button on the row instead of letting it stretch to full width. */
+li:has(> button) {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+li>button {
+  width: auto;
+  margin: 0 0 0 auto;
+  flex-shrink: 0;
+  padding: 7px 16px;
+  font-size: 13px;
+}
+
 /* ---- Toast / inline banner ------------------------------------------ */
-/* Shown at the top of .card or at the fixed top of the viewport for
-   full-screen views (PLAYING, RESULT, DASHBOARD).  Two placements:
+/* Two placements:
      • .toast-static  — inside a card, renders in normal flow
      • .toast-fixed   — fixed overlay (top-center) for full-screen views  */
 .toast {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: 10px var(--sp-4);
+  padding: 11px var(--sp-4);
+  border: var(--line) solid var(--ink);
   border-radius: var(--r-md);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 800;
   line-height: 1.4;
   margin: 0 0 var(--sp-3);
-  animation: toast-in 0.18s ease;
+  box-shadow: var(--pop);
+  animation: toast-in 0.2s cubic-bezier(.2, .9, .3, 1.4);
 }
 
 .toast.toast-fixed {
   position: fixed;
-  top: 16px;
+  top: 18px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
   min-width: 260px;
   max-width: min(520px, 90vw);
   margin: 0;
-  box-shadow: var(--shadow);
 }
 
 .toast.error {
-  background: #3a1a1a;
-  border: 1px solid #7a3a3a;
-  color: #f0b0b0;
+  background: var(--pink);
+  color: #fff;
 }
 
 .toast.warn {
-  background: #2e2a12;
-  border: 1px solid #6a5a20;
-  color: #e8d080;
+  background: var(--yellow);
+  color: var(--ink);
 }
 
 .toast.info {
-  background: #14233a;
-  border: 1px solid #2a4a6a;
-  color: #90c0e8;
+  background: var(--cyan);
+  color: var(--ink);
 }
 
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(-6px);
+    transform: translateY(-10px) scale(.95);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
@@ -598,11 +1012,18 @@ select {
 
   to {
     opacity: 0;
-    transform: translateX(-50%) translateY(-8px);
+    transform: translateX(-50%) translateY(-10px);
   }
 }
 
 /* ---- Narrow-window safety net (desktop-first fallback) -------------- */
+@media (max-width: 900px) {
+  .dash-main {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(180px, 34%) 1fr;
+  }
+}
+
 @media (max-width: 720px) {
   .play {
     grid-template-columns: 1fr;
@@ -620,6 +1041,30 @@ select {
   }
 
   .result {
-    min-width: 240px;
+    min-width: 260px;
+  }
+
+  .dash-top {
+    flex-wrap: wrap;
+  }
+}
+
+/* Honour reduced-motion: keep the layout and color, drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+
+  .card,
+  .pcard,
+  .rank,
+  .roomcode,
+  .results-row .result:nth-child(1) {
+    rotate: 0deg;
   }
 }
