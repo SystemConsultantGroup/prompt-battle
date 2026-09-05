@@ -26,6 +26,9 @@ export type PlayerResult = {
   items: ResultItem[]; genToken?: string;
 };
 export type PlayerView = { username: string; connected: boolean };
+/** The bits of a problem the whole room may see before a round starts. The
+ *  target itself stays hidden until GAME_START; only the name is public. */
+export type ProblemCard = { id: number; title: string };
 
 export type RoomSummary = {
   code: string;
@@ -40,6 +43,9 @@ export type RoomSummary = {
    *  one, otherwise the selected problem's default. Null until a problem is
    *  selected. Carried in the summary so a host reclaim restores the pick. */
   timeLimitSec: number | null;
+  /** Title of the armed problem, so the read-only player lobby can name it
+   *  instead of showing a bare id — and so a reconnect restores the name. */
+  problemTitle: string | null;
   /** The standings of the round that just finished, so a host reclaim — or a
    *  player who refreshes on the result screen — gets the board back instead
    *  of an empty one. Null outside RESULT. */
@@ -64,7 +70,13 @@ export type ServerMsg =
   | { type: 'PLAYER_JOINED'; username: string }
   | { type: 'PLAYER_LEFT'; username: string }
   | { type: 'PROMPT_MIRROR'; username: string; text: string }
-  | { type: 'PROBLEM_SELECTED'; problemId: number; timeLimitSec: number }
+  /** Broadcast to the whole room: everyone's lobby shows the same pick. `mode`
+   *  and `reelPool` drive the roulette animation on every screen at once —
+   *  `reelPool` is only sent for the modes that actually spin. */
+  | {
+      type: 'PROBLEM_SELECTED'; problemId: number; timeLimitSec: number;
+      title: string; mode: SelectMode; reelPool?: ProblemCard[];
+    }
   | { type: 'TIME_LIMIT_SET'; timeLimitSec: number }
   | { type: 'GAME_START'; problemId: number; deadline: number; variationId: number | null }
   | { type: 'TICK'; remainingSec: number }

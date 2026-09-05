@@ -22,6 +22,9 @@ export type Room = {
   /** Effective round length. Seeded from the problem on selection, then
    *  replaced by `setTimeLimit` if the host picks a different one. */
   timeLimitSec: number | null;
+  /** Title of the armed problem, mirrored here so the summary can name it
+   *  without every client needing admin-gated access to the catalogue. */
+  problemTitle: string | null;
   deadline: number | null;
   /** Standings of the last graded round, kept for the whole RESULT phase so a
    *  reconnecting host or player can be handed the board in their STATE. */
@@ -57,7 +60,7 @@ export class GameManager {
     this.rooms.set(code, {
       code, phase: 'LOBBY', maxPlayers: opts.maxPlayers,
       players: new Map(), problemId: null, activeVariationId: null,
-      timeLimitSec: null, deadline: null, ranking: null,
+      timeLimitSec: null, problemTitle: null, deadline: null, ranking: null,
       timer: null, evictTimer: null,
     });
     return code;
@@ -132,6 +135,7 @@ export class GameManager {
       problemId: room.problemId,
       activeVariationId: room.activeVariationId,
       timeLimitSec: room.timeLimitSec,
+      problemTitle: room.problemTitle,
       deadline: room.deadline,
       ranking: room.ranking,
     };
@@ -151,12 +155,13 @@ export class GameManager {
     const problem = this.deps.getProblem(problemId);
     if (!problem) return { ok: false, error: 'unknown problem' };
     room.problemId = problemId;
+    room.problemTitle = problem.title;
     room.activeVariationId = null;
     // Picking a problem re-seeds the round length from that problem's default.
     // A host who wants something else picks it again after selecting — this
     // way the displayed time always belongs to the problem now on screen.
     room.timeLimitSec = problem.timeLimitSec;
-    return { ok: true, timeLimitSec: problem.timeLimitSec };
+    return { ok: true, timeLimitSec: problem.timeLimitSec, title: problem.title };
   }
   /**
    * Override the round length for the next round. Lobby-only (changing it
@@ -221,7 +226,8 @@ export class GameManager {
     const room = this.rooms.get(code);
     if (!room) return;
     if (room.timer) { this.sched().clearInterval(room.timer); room.timer = null; }
-    room.phase = 'LOBBY'; room.problemId = null; room.activeVariationId = null;
+    room.phase = 'LOBBY'; room.problemId = null; room.problemTitle = null;
+    room.activeVariationId = null;
     room.timeLimitSec = null; room.deadline = null; room.ranking = null;
     for (const p of room.players.values()) p.prompt = '';
   }

@@ -2,6 +2,7 @@ import { connect } from '/shared/ws.js';
 import { el, mount, timerClass, timerText } from '/shared/dom.js';
 import { renderResults } from '/shared/results.js';
 import { renderGrading } from '/shared/grading.js';
+import { renderLobbyBoard } from '/shared/lobby.js';
 
 const JOIN_KEY = 'pb_join';
 const app = document.getElementById('app');
@@ -90,6 +91,11 @@ function onMsg(msg) {
     state.phase = room.phase;
     state.players = room.players;
     state.problemId = room.problemId;
+    // The lobby board is the host's, read-only: same room code, same armed
+    // problem, same round length. A reconnect restores all of it.
+    state.roomCode = room.code;
+    state.problemTitle = room.problemTitle ?? null;
+    state.timeLimitSec = room.timeLimitSec ?? null;
     // Restore the active variation on reconnect so a mid-round refresh shows
     // the actual (possibly variant) target, not the base render.
     state.variationId = room.activeVariationId ?? null;
@@ -113,6 +119,15 @@ function onMsg(msg) {
   }
   if (msg.type === 'PLAYER_JOINED') state.players.push({ username: msg.username });
   if (msg.type === 'PLAYER_LEFT') state.players = state.players.filter(p => p.username !== msg.username);
+  if (msg.type === 'PROBLEM_SELECTED') {
+    state.problemId = msg.problemId; state.problemTitle = msg.title;
+    state.timeLimitSec = msg.timeLimitSec;
+    // Same reel, same pool, same winner as the host's screen.
+    state.spin = msg.reelPool ? { pool: msg.reelPool, winnerId: msg.problemId } : null;
+    // A spin has to rebuild the lobby, not patch it.
+    currentScreen = null;
+  }
+  if (msg.type === 'TIME_LIMIT_SET') state.timeLimitSec = msg.timeLimitSec;
   if (msg.type === 'GAME_START') { state.phase = 'PLAYING'; state.problemId = msg.problemId; state.variationId = msg.variationId; state.promptText = ''; state.remaining = null; state.locked = false; }
   if (msg.type === 'TICK') state.remaining = msg.remainingSec;
   // The round is over: move to the shared grading screen immediately rather
@@ -171,16 +186,26 @@ function renderJoin(errMsg) {
     _pendingName = name.value.trim();
     try { sessionStorage.setItem(JOIN_KEY, JSON.stringify({ roomCode: _pendingCode, username: _pendingName })); } catch { /* ignore */ }
     bus.send({ type: 'JOIN', roomCode: _pendingCode, username: _pendingName });
+    // Show the code we're joining with straight away; STATE confirms it.
+    state.roomCode = _pendingCode;
     state.phase = 'LOBBY';
   }
   code.addEventListener('keydown', (e) => { if (e.key === 'Enter') doJoin(); });
   name.addEventListener('keydown', (e) => { if (e.key === 'Enter') doJoin(); });
 }
 function renderLobby() {
-  mount(app, el('div', { class: 'card' },
-    el('h2', {}, '호스트를 기다리는 중…'),
-    el('p', { class: 'eyebrow' }, `참가자 ${state.players.length}명`),
-    el('ul', {}, ...state.players.map(p => el('li', {}, p.username)))));
+  // The host's board with no controls attached — read-only by construction,
+  // so the room watches one roulette spin and one round length together.
+  renderLobbyBoard(app, {
+    roomCode: state.roomCode,
+    players: state.players,
+    problemId: state.problemId,
+    problemTitle: state.problemTitle,
+    timeLimitSec: state.timeLimitSec,
+    footer: el('p', { class: 'eyebrow' }, '호스트가 시작하기를 기다리는 중…'),
+    spin: state.spin,
+  });
+  state.spin = null;
 }
 let debounce;
 let editorTimerEl = null;

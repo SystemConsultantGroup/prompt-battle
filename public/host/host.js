@@ -3,7 +3,7 @@ import { el, mount } from '/shared/dom.js';
 import { renderDashboard } from '/host/dashboard.js';
 import { renderResults } from '/host/results.js';
 import { renderGrading } from '/shared/grading.js';
-import { spinReel } from '/host/roulette.js';
+import { renderLobbyBoard } from '/shared/lobby.js';
 
 const HOST_KEY = 'pb_host';
 const app = document.getElementById('app');
@@ -11,12 +11,6 @@ let state = {
   phase: 'AUTH', room: null, mirror: {}, remaining: null, progress: null,
   ranking: null, variationId: null, timeLimitSec: null,
 };
-// Must stay in sync with TIME_LIMIT_OPTIONS in src/game/types.ts — the server
-// rejects anything outside that set, so a drift here shows up as an error toast.
-const TIME_LIMITS = [30, 60, 90, 120, 150];
-// Problem titles, cached from /api/problems so the lobby can name the armed
-// problem instead of showing a bare id.
-const problemTitles = new Map();
 const bus = connect(onMsg, onOpen);
 state.bus = bus;
 
@@ -111,6 +105,7 @@ function onMsg(msg) {
     // Carry the round length and active variation across a host reclaim so the
     // lobby shows the real armed pick and the dashboard renders the real goal.
     state.timeLimitSec = msg.room.timeLimitSec ?? null;
+    state.problemTitle = msg.room.problemTitle ?? null;
     state.variationId = msg.room.activeVariationId ?? null;
     // A reclaim during RESULT gets the finished board back from the summary;
     // a reclaim into any other phase clears it so a stale board can't linger.
@@ -129,10 +124,10 @@ function onMsg(msg) {
   if (msg.type === 'PLAYER_LEFT') state.room.players = state.room.players.filter(p => p.username !== msg.username);
   if (msg.type === 'PROBLEM_SELECTED') {
     state.problemId = msg.problemId; state.timeLimitSec = msg.timeLimitSec;
-    // Only roulette/category picks are hidden-then-revealed via the spinning
-    // reel; direct and variation picks are chosen explicitly by the host and
-    // should just update the selection display immediately.
-    if (state.pendingMode === 'roulette' || state.pendingMode === 'category') state.animateWinner = msg.problemId;
+    state.problemTitle = msg.title;
+    // The server says which modes spin and hands over the pool, so host and
+    // players run the identical reel off the identical data.
+    state.spin = msg.reelPool ? { pool: msg.reelPool, winnerId: msg.problemId } : null;
   }
   if (msg.type === 'TIME_LIMIT_SET') state.timeLimitSec = msg.timeLimitSec;
   if (msg.type === 'GAME_START') {
@@ -188,93 +183,58 @@ function renderAuth(errMsg) {
 
 async function fetchProblems() {
   const res = await fetch('/api/problems', { headers: { 'x-admin-password': state.pw } });
-  const ps = res.ok ? await res.json() : [];
-  for (const p of ps) problemTitles.set(p.id, p.title);
-  return ps;
+  return res.ok ? await res.json() : [];
 }
 
 function renderLobby() {
-  const players = state.room?.players ?? [];
-  const info = el('div', {},
-    el('p', { class: 'eyebrow' }, '방 코드'),
-    el('div', { class: 'roomcode' }, state.room?.code ?? '----'),
-    el('p', { class: 'eyebrow', style: 'margin-top:20px' }, `참가자 ${players.length}명`),
-    players.length
-      ? el('div', { class: 'modes' }, ...players.map(p => el('span', { class: 'chip' }, p.username)))
-      : el('p', {}, '아직 아무도 안 들어왔습니다.'));
-  const reel = el('div', { class: 'reel' });
   const startBtn = el('button', {}, '시작하기');
   startBtn.disabled = state.problemId == null;
   startBtn.addEventListener('click', () => state.bus.send({ type: 'START' }));
 
+  // The mode buttons fill the reel slot with their own menu; the shared board
+  // hands that element back so this stays the host's only extra wiring.
+  let reel;
+  const menu = (nodes) => mount(reel, ...nodes);
+
   const pickDirect = el('button', { onClick: async () => {
     const ps = await fetchProblems();
-    mount(reel, ...ps.map(p => el('button', { onClick: () => {
-      state.pendingMode = 'direct'; state.bus.send({ type: 'SELECT_PROBLEM', mode: 'direct', problemId: p.id });
-    } }, `${p.title} (${diffKo(p.difficulty)}, ${p.timeLimitSec}초)`)));
+    menu(ps.map(p => el('button', {
+      onClick: () => state.bus.send({ type: 'SELECT_PROBLEM', mode: 'direct', problemId: p.id }),
+    }, `${p.title} (${diffKo(p.difficulty)}, ${p.timeLimitSec}초)`)));
   } }, '직접 선택');
 
   const pickVariation = el('button', { onClick: async () => {
     const ps = await fetchProblems();
-    mount(reel, ...ps.map(p => el('button', { onClick: () => {
-      state.pendingMode = 'variation'; state.bus.send({ type: 'SELECT_PROBLEM', mode: 'variation', problemId: p.id });
-    } }, `${p.title} (${diffKo(p.difficulty)}, ${p.timeLimitSec}초)`)));
+    menu(ps.map(p => el('button', {
+      onClick: () => state.bus.send({ type: 'SELECT_PROBLEM', mode: 'variation', problemId: p.id }),
+    }, `${p.title} (${diffKo(p.difficulty)}, ${p.timeLimitSec}초)`)));
   } }, '문제 + 랜덤 변형');
 
-  const spinBtn = el('button', { onClick: async () => {
-    const ps = await fetchProblems();
-    state.reelPool = ps;
-    state.pendingMode = 'roulette';
-    state.bus.send({ type: 'SELECT_PROBLEM', mode: 'roulette' });
-  } }, '룰렛');
+  const spinBtn = el('button', {
+    onClick: () => state.bus.send({ type: 'SELECT_PROBLEM', mode: 'roulette' }),
+  }, '룰렛');
 
   const catBtn = el('button', { onClick: async () => {
     const cats = await (await fetch('/api/categories', { headers: { 'x-admin-password': state.pw } })).json();
-    mount(reel, ...cats.map(c => el('button', { onClick: async () => {
-      state.reelPool = (await fetchProblems()).filter(p => p.category === c);
-      state.pendingMode = 'category';
-      state.bus.send({ type: 'SELECT_PROBLEM', mode: 'category', category: c });
-    } }, c)));
+    menu(cats.map(c => el('button', {
+      onClick: () => state.bus.send({ type: 'SELECT_PROBLEM', mode: 'category', category: c }),
+    }, c)));
   } }, '카테고리 룰렛');
 
-  // Round length. Disabled until a problem is armed, because selecting one
-  // re-seeds the length from that problem and would discard an earlier pick.
-  const timeBtns = TIME_LIMITS.map(sec => {
-    const b = el('button', {
-      class: state.timeLimitSec === sec ? 'on' : '',
-      onClick: () => state.bus.send({ type: 'SET_TIME_LIMIT', seconds: sec }),
-    }, `${sec}초`);
-    b.disabled = state.problemId == null;
-    return b;
+  reel = renderLobbyBoard(app, {
+    roomCode: state.room?.code,
+    players: state.room?.players ?? [],
+    problemId: state.problemId,
+    problemTitle: state.problemTitle,
+    timeLimitSec: state.timeLimitSec,
+    onPickTime: (sec) => state.bus.send({ type: 'SET_TIME_LIMIT', seconds: sec }),
+    controls: el('div', { class: 'modes' }, pickDirect, pickVariation, spinBtn, catBtn),
+    footer: startBtn,
+    spin: state.spin,
   });
-
-  // After a host reclaim the title cache is empty but a problem may already be
-  // armed. Backfill once (the flag stops a fetch→render→fetch loop when the
-  // id genuinely isn't in the list).
-  if (state.problemId != null && !problemTitles.has(state.problemId) && !state.titlesFetched) {
-    state.titlesFetched = true;
-    fetchProblems().then(() => { if (state.phase === 'LOBBY') render(); });
-  }
-  const title = state.problemId != null ? problemTitles.get(state.problemId) : null;
-  const selection = state.problemId != null
-    ? el('div', { class: 'selection' },
-        `선택된 문제: ${title ?? `#${state.problemId}`} — 제한시간 ${state.timeLimitSec ?? '?'}초`)
-    : el('div', { class: 'selection none' }, '아직 문제를 고르지 않았습니다.');
-
-  mount(app, el('div', { class: 'card wide' }, info,
-    el('p', { class: 'eyebrow', style: 'margin-top:20px' }, '문제 고르기'),
-    el('div', { class: 'modes' }, pickDirect, pickVariation, spinBtn, catBtn),
-    reel,
-    el('p', { class: 'eyebrow' }, '제한시간'),
-    el('div', { class: 'timeopts' }, ...timeBtns),
-    selection,
-    startBtn));
-
-  // if a roulette selection just arrived, animate then reveal
-  if (state.animateWinner && state.reelPool) {
-    spinReel(reel, state.reelPool, state.animateWinner, () => {});
-    state.animateWinner = null;
-  }
+  // One spin per selection: clear it so a later re-render (a player joining,
+  // a time-limit change) doesn't replay the reel.
+  state.spin = null;
 }
 
 function handleResults() {

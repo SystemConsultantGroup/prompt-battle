@@ -806,6 +806,12 @@ li {
   box-shadow: inset 4px 4px 0 rgba(18, 0, 34, .4);
 }
 
+/* Nothing to spin or pick yet — collapse the slot on both screens rather than
+   leaving an empty well (the players' reel is empty except during a spin). */
+.reel:empty {
+  display: none;
+}
+
 /* When the reel holds a picker list rather than a spinning strip. */
 .reel button {
   width: auto;

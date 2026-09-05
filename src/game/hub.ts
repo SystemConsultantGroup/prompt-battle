@@ -1,5 +1,5 @@
 import type { GameManager } from './GameManager.ts';
-import type { ClientMsg, ServerMsg } from './types.ts';
+import type { ClientMsg, ProblemCard, SelectMode, ServerMsg } from './types.ts';
 import { resolveSelection, pickVariation } from './select.ts';
 import { constantTimeEqual } from '../util/secure.ts';
 import type { Variation } from '../db/index.ts';
@@ -78,6 +78,19 @@ export class Hub {
     }
   }
 
+  /**
+   * The candidate cards a spinning reel scrolls through. Only the modes that
+   * actually spin (roulette / category) get one — a direct pick reveals
+   * nothing, and shipping the whole catalogue to players otherwise would leak
+   * problems they haven't been shown. Titles only: never the target code.
+   */
+  private reelPool(mode: SelectMode, category?: string): ProblemCard[] | undefined {
+    if (mode !== 'roulette' && mode !== 'category') return undefined;
+    return this.deps.listProblems()
+      .filter(p => mode === 'roulette' || p.category === category)
+      .map(p => ({ id: p.id, title: p.title }));
+  }
+
   handle(conn: Conn, raw: string) {
     let msg: ClientMsg;
     try { msg = JSON.parse(raw) as ClientMsg; }
@@ -137,7 +150,10 @@ export class Hub {
         const vids = this.deps.listVariations(problemId).map(v => v.id);
         const chosen = pickVariation(vids, this.deps.rng ?? Math.random);
         this.mgr.setActiveVariation(code, chosen);
-        this.broadcast(code, { type: 'PROBLEM_SELECTED', problemId, timeLimitSec: res.timeLimitSec! });
+        this.broadcast(code, {
+          type: 'PROBLEM_SELECTED', problemId, timeLimitSec: res.timeLimitSec!,
+          title: res.title!, mode: msg.mode,
+        });
         return;
       }
       const sel = resolveSelection(this.deps.listProblems(), msg.mode,
@@ -145,7 +161,11 @@ export class Hub {
       if ('error' in sel) { conn.send({ type: 'ERROR', message: sel.error }); return; }
       const res = this.mgr.selectProblem(code, sel.problem.id);
       if (!res.ok) { conn.send({ type: 'ERROR', message: res.error! }); return; }
-      this.broadcast(code, { type: 'PROBLEM_SELECTED', problemId: sel.problem.id, timeLimitSec: res.timeLimitSec! });
+      this.broadcast(code, {
+        type: 'PROBLEM_SELECTED', problemId: sel.problem.id,
+        timeLimitSec: res.timeLimitSec!, title: res.title!, mode: msg.mode,
+        reelPool: this.reelPool(msg.mode, msg.category),
+      });
       return;
     }
     if (msg.type === 'SET_TIME_LIMIT') {
