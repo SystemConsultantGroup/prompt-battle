@@ -520,6 +520,22 @@ li {
   font-family: inherit;
 }
 
+/* ---- Grading progress, shown to the whole room ---------------------- */
+.gradebar {
+  margin-top: var(--sp-3);
+  height: 16px;
+  border: var(--line) solid var(--ink);
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.gradebar-fill {
+  height: 100%;
+  background: var(--lime);
+  transition: width .3s ease;
+}
+
 /* ---- Results — fixed fit; cards laid out horizontally --------------- */
 .results-wrap {
   display: flex;
@@ -605,6 +621,24 @@ li {
 .results-row .result:nth-child(3) .rank {
   background: var(--bronze);
   color: var(--ink);
+}
+
+/* On a player's device, their own card is called out so they can find
+   themselves in the row without reading every name. */
+.result.mine {
+  box-shadow: var(--pop-lg), 0 0 0 4px var(--cyan);
+}
+
+.rme {
+  flex-shrink: 0;
+  padding: 2px 9px;
+  border: 2px solid var(--ink);
+  border-radius: var(--r-pill);
+  background: var(--cyan);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .1em;
 }
 
 /* Winner gets a lime halo so it reads from the back of the room. */
@@ -704,54 +738,6 @@ li {
   height: 210px;
   flex-shrink: 0;
   margin-top: auto;
-}
-
-/* Player-side result list — podium ordering, no detail. */
-.ranklist {
-  counter-reset: rank;
-}
-
-.ranklist li {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  font-weight: 800;
-}
-
-.ranklist li::before {
-  counter-increment: rank;
-  content: counter(rank);
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  flex-shrink: 0;
-  border: 2px solid var(--ink);
-  border-radius: var(--r-pill);
-  background: var(--elevated);
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.ranklist li:nth-child(1)::before {
-  background: var(--gold);
-  color: var(--ink);
-}
-
-.ranklist li:nth-child(2)::before {
-  background: var(--silver);
-  color: var(--ink);
-}
-
-.ranklist li:nth-child(3)::before {
-  background: var(--bronze);
-  color: var(--ink);
-}
-
-.ranklist li .score {
-  margin-left: auto;
-  color: var(--lime);
-  font-variant-numeric: tabular-nums;
 }
 
 /* ---- Host lobby: mode buttons, time limit, roulette reel ------------ */
@@ -1040,8 +1026,21 @@ li>button {
     grid-template-columns: 1fr;
   }
 
+  .results-wrap {
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .results-row {
+    flex-direction: column;
+    overflow-x: visible;
+    overflow-y: visible;
+  }
+
   .result {
-    min-width: 260px;
+    min-width: 0;
+    max-width: none;
+    overflow-y: visible;
   }
 
   .dash-top {

@@ -40,6 +40,10 @@ export type RoomSummary = {
    *  one, otherwise the selected problem's default. Null until a problem is
    *  selected. Carried in the summary so a host reclaim restores the pick. */
   timeLimitSec: number | null;
+  /** The standings of the round that just finished, so a host reclaim — or a
+   *  player who refreshes on the result screen — gets the board back instead
+   *  of an empty one. Null outside RESULT. */
+  ranking: PlayerResult[] | null;
 };
 
 // client -> server

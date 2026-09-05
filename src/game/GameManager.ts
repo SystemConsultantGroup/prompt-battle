@@ -1,4 +1,4 @@
-import { isTimeLimitOption, type Phase, type RoomSummary } from './types.ts';
+import { isTimeLimitOption, type Phase, type PlayerResult, type RoomSummary } from './types.ts';
 import type { Problem } from '../db/index.ts';
 
 export type PlayerState = {
@@ -23,6 +23,9 @@ export type Room = {
    *  replaced by `setTimeLimit` if the host picks a different one. */
   timeLimitSec: number | null;
   deadline: number | null;
+  /** Standings of the last graded round, kept for the whole RESULT phase so a
+   *  reconnecting host or player can be handed the board in their STATE. */
+  ranking: PlayerResult[] | null;
   timer: unknown | null;
   evictTimer: unknown | null;
 };
@@ -54,7 +57,8 @@ export class GameManager {
     this.rooms.set(code, {
       code, phase: 'LOBBY', maxPlayers: opts.maxPlayers,
       players: new Map(), problemId: null, activeVariationId: null,
-      timeLimitSec: null, deadline: null, timer: null, evictTimer: null,
+      timeLimitSec: null, deadline: null, ranking: null,
+      timer: null, evictTimer: null,
     });
     return code;
   }
@@ -129,6 +133,7 @@ export class GameManager {
       activeVariationId: room.activeVariationId,
       timeLimitSec: room.timeLimitSec,
       deadline: room.deadline,
+      ranking: room.ranking,
     };
   }
 
@@ -167,6 +172,11 @@ export class GameManager {
     room.timeLimitSec = seconds;
     return { ok: true, timeLimitSec: seconds };
   }
+  /** Record the finished round's standings so they survive a reconnect. */
+  setResults(code: string, ranking: PlayerResult[]): void {
+    const room = this.rooms.get(code);
+    if (room) room.ranking = ranking;
+  }
   setActiveVariation(code: string, variationId: number | null): void {
     const room = this.rooms.get(code);
     if (room) room.activeVariationId = variationId;
@@ -178,6 +188,9 @@ export class GameManager {
     if (room.phase !== 'LOBBY') return { ok: false, error: 'not in lobby' };
     const problem = this.deps.getProblem(room.problemId)!;
     room.phase = 'PLAYING';
+    // A new round supersedes the old board — drop it now so a mid-round
+    // reconnect can't be handed last round's results.
+    room.ranking = null;
     const seconds = room.timeLimitSec ?? problem.timeLimitSec;
     room.deadline = this.deps.now() + seconds * 1000;
     room.timer = this.sched().setInterval(() => {
@@ -209,7 +222,7 @@ export class GameManager {
     if (!room) return;
     if (room.timer) { this.sched().clearInterval(room.timer); room.timer = null; }
     room.phase = 'LOBBY'; room.problemId = null; room.activeVariationId = null;
-    room.timeLimitSec = null; room.deadline = null;
+    room.timeLimitSec = null; room.deadline = null; room.ranking = null;
     for (const p of room.players.values()) p.prompt = '';
   }
   removeRoom(code: string): void {

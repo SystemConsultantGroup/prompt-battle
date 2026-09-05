@@ -1,5 +1,7 @@
 import { connect } from '/shared/ws.js';
 import { el, mount, timerClass, timerText } from '/shared/dom.js';
+import { renderResults } from '/shared/results.js';
+import { renderGrading } from '/shared/grading.js';
 
 const JOIN_KEY = 'pb_join';
 const app = document.getElementById('app');
@@ -94,6 +96,11 @@ function onMsg(msg) {
     // A lobby means no active prompt — mirror the server's per-round reset
     // so stale text from a prior round can't bleed into the next editor.
     if (room.phase === 'LOBBY') state.promptText = '';
+    // The finished board rides along in the summary, so refreshing on the
+    // result screen restores it instead of showing an empty ranking. Outside
+    // RESULT it's null, which is also what a RESTART must leave behind.
+    state.ranking = room.ranking ?? null;
+    if (room.phase !== 'GRADING') state.progress = null;
     state.promptText = msg.yourPrompt ?? state.promptText ?? '';
     state.remaining = room.deadline != null
       ? Math.max(0, Math.ceil((room.deadline - Date.now()) / 1000))
@@ -108,7 +115,10 @@ function onMsg(msg) {
   if (msg.type === 'PLAYER_LEFT') state.players = state.players.filter(p => p.username !== msg.username);
   if (msg.type === 'GAME_START') { state.phase = 'PLAYING'; state.problemId = msg.problemId; state.variationId = msg.variationId; state.promptText = ''; state.remaining = null; state.locked = false; }
   if (msg.type === 'TICK') state.remaining = msg.remainingSec;
-  if (msg.type === 'GAME_END') { state.locked = true; }
+  // The round is over: move to the shared grading screen immediately rather
+  // than sitting on a dead editor until the first progress message lands —
+  // the host makes the same jump, so the room is in step from the end whistle.
+  if (msg.type === 'GAME_END') { state.locked = true; state.phase = 'GRADING'; state.progress = null; }
   if (msg.type === 'GRADING_PROGRESS') { state.phase = 'GRADING'; state.progress = msg; }
   if (msg.type === 'RESULT') { state.phase = 'RESULT'; state.ranking = msg.ranking; }
   render();
@@ -126,8 +136,10 @@ function render(errMsg) {
   if (target === 'JOIN') return renderJoin(errMsg);
   if (target === 'LOBBY') return renderLobby();
   if (target === 'PLAYING') return renderEditor();
-  if (target === 'GRADING') return renderGrading();
-  if (target === 'RESULT') return renderResult();
+  if (target === 'GRADING') return renderGrading(app, state);
+  // Players see the host's board verbatim — same ranks, scores, prompts and
+  // renders — minus the restart control, plus a badge on their own card.
+  if (target === 'RESULT') return renderResults(app, state, { me: _pendingName });
 }
 function renderJoin(errMsg) {
   const code = el('input', { placeholder: '방 코드', id: 'join-code' });
@@ -202,23 +214,5 @@ function updateEditor() {
   }
   if (editorTextareaEl) editorTextareaEl.disabled = !!state.locked;
 }
-function renderGrading() {
-  const p = state.progress;
-  mount(app, el('div', { class: 'card' }, el('h2', {}, '채점 중…'),
-    el('p', {}, p ? `${p.done}/${p.total}` : '')));
-}
-function renderResult() {
-  const ranking = state.ranking ?? [];
-  // Your own row carries the prompt you submitted — the host screen shows
-  // everyone's, but on your own device you get yours back to compare.
-  const mine = ranking.find(r => r.username === _pendingName);
-  const minePrompt = (mine?.prompt ?? '').trim();
-  mount(app, el('div', { class: 'card' },
-    el('h2', {}, '결과'),
-    el('ul', { class: 'ranklist' }, ...ranking.map(r =>
-      el('li', {}, r.username, el('span', { class: 'score' }, `${Math.round(r.total * 100)}%`)))),
-    ...(mine ? [el('div', { class: 'rprompt' },
-      el('div', { class: 'rprompt-label' }, '내가 쓴 프롬프트'),
-      el('pre', { class: minePrompt ? '' : 'empty' }, minePrompt || '(작성 안 함)'))] : [])));
-}
+
 render();
