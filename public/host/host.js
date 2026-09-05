@@ -2,6 +2,7 @@ import { connect } from '/shared/ws.js';
 import { el, mount } from '/shared/dom.js';
 import { renderDashboard } from '/host/dashboard.js';
 import { renderResults } from '/host/results.js';
+import { renderGrading } from '/shared/grading.js';
 import { spinReel } from '/host/roulette.js';
 
 const HOST_KEY = 'pb_host';
@@ -111,6 +112,10 @@ function onMsg(msg) {
     // lobby shows the real armed pick and the dashboard renders the real goal.
     state.timeLimitSec = msg.room.timeLimitSec ?? null;
     state.variationId = msg.room.activeVariationId ?? null;
+    // A reclaim during RESULT gets the finished board back from the summary;
+    // a reclaim into any other phase clears it so a stale board can't linger.
+    state.ranking = msg.room.ranking ?? null;
+    if (msg.room.phase !== 'GRADING') state.progress = null;
     // Restore the countdown immediately on reclaim so the dashboard timer
     // isn't blank until the next TICK arrives (which then corrects skew).
     state.remaining = (msg.room.deadline != null && msg.room.phase === 'PLAYING')
@@ -139,7 +144,9 @@ function onMsg(msg) {
   }
   if (msg.type === 'TICK') state.remaining = msg.remainingSec;
   if (msg.type === 'PROMPT_MIRROR') state.mirror[msg.username] = msg.text;
-  if (msg.type === 'GAME_END') state.remaining = 0;
+  // Same jump as the players make, so host and room show the identical
+  // grading screen from the moment the round ends.
+  if (msg.type === 'GAME_END') { state.remaining = 0; state.phase = 'GRADING'; state.progress = null; }
   if (msg.type === 'GRADING_PROGRESS') { state.phase = 'GRADING'; state.progress = msg; }
   if (msg.type === 'RESULT') { state.phase = 'RESULT'; state.ranking = msg.ranking; }
   render();
@@ -279,8 +286,7 @@ function render(errMsg) {
   // For full-screen phases, pass the error as a fixed toast.
   if (errMsg) showToast(errMsg, 'warn', null);
   if (state.phase === 'PLAYING') return renderDashboard(app, state);
-  if (state.phase === 'GRADING') return mount(app, el('div', { class: 'card' },
-    el('h2', {}, '채점 중…'), el('p', {}, state.progress ? `${state.progress.done}/${state.progress.total}` : '')));
+  if (state.phase === 'GRADING') return renderGrading(app, state);
   if (state.phase === 'RESULT') return handleResults();
   return renderLobby();
 }

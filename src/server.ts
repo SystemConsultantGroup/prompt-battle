@@ -78,6 +78,7 @@ export function attachWs(server: http.Server, opts: {
       // renders stored during grading would otherwise leak.
       if (!mgr.getRoom(code)) { genStore.clearRoom(code); return; }
       mgr.setPhase(code, 'RESULT');
+      mgr.setResults(code, results);
       hub.broadcast(code, { type: 'RESULT', ranking: results });
     } catch (err) {
       // Grading must never leave an unhandled rejection: this hook is invoked
@@ -86,6 +87,7 @@ export function attachWs(server: http.Server, opts: {
       console.error('[grading] failed for room', code, err);
       if (!mgr.getRoom(code)) { genStore.clearRoom(code); return; }
       mgr.setPhase(code, 'RESULT');
+      mgr.setResults(code, []);
       hub.broadcast(code, { type: 'RESULT', ranking: [] });
     }
   };
