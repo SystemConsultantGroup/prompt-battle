@@ -1,10 +1,12 @@
 import http from 'node:http';
 import { fileURLToPath } from 'node:url';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { serveStatic } from './http/static.ts';
 import { renderDoc, GenStore } from './http/render.ts';
 import { handleApi } from './admin/routes.ts';
 import { WebSocketServer } from 'ws';
-import { openDb, listAccounts, getProblem, listProblems, listCriteria, listVariations, getVariation, type Database } from './db/index.ts';
+import { openDb, listAccounts, getProblem, listProblems, listCriteria, listVariations, getVariation, getTheme, type Database } from './db/index.ts';
 import { GameManager } from './game/GameManager.ts';
 import { Hub, type Conn } from './game/hub.ts';
 import { gradeRoom } from './grading/pipeline.ts';
@@ -34,6 +36,7 @@ export function startServer(opts: {
 export function attachWs(server: http.Server, opts: {
   dbPath: string; adminPassword: string;
 }) {
+  mkdirSync(dirname(opts.dbPath), { recursive: true });
   const db = openDb(opts.dbPath);
   const genStore = new GenStore();
   // Provider selection: OpenAI takes precedence (its key is OpenAI-format,
@@ -117,6 +120,19 @@ export function attachWs(server: http.Server, opts: {
 export function makeRouter(db: Database, genStore: GenStore) {
   return (req: http.IncomingMessage, res: http.ServerResponse): boolean => {
     const url = (req.url ?? '').split('?')[0];
+    if (url === '/theme.css') {
+      // A render-blocking stylesheet snapshots the selection for this document.
+      // No polling/WS updates: existing pages and their game state stay intact.
+      res.setHeader('cache-control', 'no-store');
+      res.setHeader('x-content-type-options', 'nosniff');
+      if (req.method !== 'GET' && req.method !== 'HEAD') {
+        res.writeHead(405, { allow: 'GET, HEAD' }).end();
+        return true;
+      }
+      res.writeHead(200, { 'content-type': 'text/css; charset=utf-8' });
+      res.end(req.method === 'HEAD' ? undefined : `@import url("/themes/${getTheme(db)}.css");\n`);
+      return true;
+    }
     let m = url.match(/^\/render\/target\/(\d+)$/);
     if (m) {
       const p = getProblem(db, Number(m[1]));
@@ -150,8 +166,6 @@ if (import.meta.url === `file://${process.argv[1]}` ||
   // Auto-load .env before reading any process.env values below.
   const { loadEnv } = await import('./config/env.ts');
   loadEnv();
-  const { mkdirSync } = await import('node:fs');
-  mkdirSync('data', { recursive: true });
   const port = Number(process.env.PORT ?? 3000);
 
   // The HTTP request router depends on `db`/`genStore`, which only exist
@@ -172,7 +186,7 @@ if (import.meta.url === `file://${process.argv[1]}` ||
     },
   });
   const { db, genStore } = attachWs(server, {
-    dbPath: 'data/app.sqlite',
+    dbPath: process.env.DB_PATH ?? 'data/app.sqlite',
     adminPassword,
   });
   router = makeRouter(db, genStore);

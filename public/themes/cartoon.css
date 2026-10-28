@@ -1,0 +1,3 @@
+/* Intentionally empty. The original cartoon theme is /styles.css, loaded
+   unchanged by every entry point. Do not add overrides here: exact preservation
+   of the original theme is a contract (see test/http/cartoon-preservation.test.ts). */

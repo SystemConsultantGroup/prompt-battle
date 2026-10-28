@@ -1,0 +1,74 @@
+/* Additive Halloween skin. /styles.css is the immutable original cartoon
+   theme; only pages that load this file receive these overrides. */
+:root {
+  --bg: #15101b;
+  --bg-2: #302037;
+  --surface: #2b2035;
+  --surface-2: #1e1726;
+  --elevated: #41304f;
+  --ink: #09060e;
+  --text: #fff4e6;
+  --muted: #d6bfdc;
+  --faint: #b39fbe;
+
+  /* Preserve the original component token names without editing their source. */
+  --pink: #ff963f;
+  --pink-hot: #ffb76b;
+  --purple: #b89ce5;
+  --cyan: #d0b9ff;
+  --lime: #c2e985;
+  --yellow: #ffd27c;
+  --orange: #e7a070;
+  --accent: var(--pink);
+  --on-accent: #211209;
+  --ok: var(--lime);
+  --no: #ff9aac;
+  --gold: var(--yellow);
+  --silver: #e4daed;
+  --bronze: var(--orange);
+}
+
+body {
+  /* Static cobweb arcs + spokes, behind rather than over the interactive UI. */
+  background-image:
+    repeating-radial-gradient(circle at 100% 0%, transparent 0 47px, rgba(208, 185, 255, .13) 48px 49px, transparent 50px 80px),
+    repeating-conic-gradient(from 180deg at 100% 0%, rgba(208, 185, 255, .13) 0deg 1deg, transparent 1deg 18deg),
+    radial-gradient(ellipse at 10% 100%, rgba(255, 150, 63, .12), transparent 60%),
+    radial-gradient(ellipse at 70% 0%, var(--bg-2), transparent 65%);
+  background-size: 240px 240px, 240px 240px, 100% 100%, 100% 100%;
+  background-position: top right, top right, center, center;
+  background-repeat: no-repeat;
+}
+
+input,
+textarea,
+select {
+  box-shadow: inset 3px 3px 0 rgba(9, 6, 14, .45);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  box-shadow: inset 3px 3px 0 rgba(9, 6, 14, .3), var(--ring);
+}
+
+.reel {
+  box-shadow: inset 4px 4px 0 rgba(9, 6, 14, .4);
+}
+
+.card,
+.pcard:nth-child(odd),
+.pcard:nth-child(even),
+.results-row .result:nth-child(1) {
+  rotate: 0deg;
+}
+
+/* Do not replace semantic warning/error colors with the pumpkin CTA color. */
+.timer.danger {
+  color: var(--no);
+}
+
+.toast.error {
+  background: #f8a0b6;
+  color: #29101c;
+}

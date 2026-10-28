@@ -42,7 +42,8 @@ COPY --from=seeder /app/data ./data
 
 # Non-root user for security.
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser \
- && chown -R appuser:appgroup /app
+ && mkdir -p /data \
+ && chown -R appuser:appgroup /app /data
 USER appuser
 
 # Expose the HTTP/WS port (override via PORT env var at runtime).
