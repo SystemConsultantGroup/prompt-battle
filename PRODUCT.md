@@ -4,7 +4,9 @@
 A Korean-language, room-based prompt-writing game. Players join, write a prompt against a target UI, and see graded results; hosts control the room and administrators manage content and the site theme.
 
 ## Current request
-Make Halloween a full visual theme, not a palette swap: change surface shapes, controls, frames and decorative details across player, host and administrator screens. Direction: a playful, paper-cut haunted arcade, not horror/gore.
+Add recognisable, friendly ghosts and jack-o'-lantern decorations to the existing Halloween theme. Make buttons subtly pumpkin-shaped, with rounded bodies, small stems and quiet rib details. Keep the paper-cut haunted arcade direction, existing layout and all gameplay intact; no horror/gore.
+
+The existing seasonal theme changes surface shapes, controls, frames and decorative details across player, host and administrator screens, not just the palette.
 
 ## Non-negotiable contracts
 - The original cartoon theme must remain byte-for-byte and visually unchanged. Never edit `public/styles.css` or add rules to `public/themes/cartoon.css`.

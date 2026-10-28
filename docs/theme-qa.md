@@ -30,7 +30,7 @@ node scripts/check-themes-browser.mjs
 - 36 original/cartoon comparisons at 1280px and 375px: client/host login, hover, lobby, playing, warning, danger, grading, results, plus admin login/console. Existing elements must have identical computed CSS and geometry. The new admin settings panel and its effect on document height are excluded from the original-component comparison.
 - Screenshot pixels are compared after pausing animations at deterministic positions. The suite permits only sparse rasterisation differences (at most 8 RGB channel levels on fewer than 0.1% of pixels), because rotated cards can have headless-Chrome antialiasing variance. The suite repaints and retries a screenshot mismatch at most twice without widening the threshold. The computed-style/geometry comparison has no such tolerance.
 - Halloween at 1280px, 768px and 375px: authentication, errors, lobby, player editor, host dashboard, all timer states, grading, results and administrator console. Each phase checks horizontal overflow and visible button height (minimum 44px).
-- Actual computed arch/crest/coffin decoration, unclipped interactive button boxes, keyboard focus outline, login viewport fit, reduced motion and forced-colors fallback.
+- Actual computed arch/crest/ghost layers, pumpkin scenery behind the UI, pumpkin button radii/stem/ribs, hover preservation, disabled opacity, unclipped interactive button boxes, keyboard focus outline, login viewport fit, reduced motion and forced-colors fallback.
 - Administrator save/error behaviour, preservation of unsaved problem edits, current-page theme/input/focus/iframe identity, fresh-document theme changes and stylesheet-failure fallback.
 - Full server restart preserves theme, accounts and problems at `DB_PATH`.
 
@@ -38,9 +38,9 @@ node scripts/check-themes-browser.mjs
 
 Review the generated desktop/mobile images, not just the assertions:
 
-- Tombstone panel arch and pumpkin/bat crest fit without covering text.
-- Scenery stays behind controls. Web stitching does not reduce legibility.
-- Angular buttons remain readable and their focus outline is not clipped.
+- Tombstone panel arch, pumpkin/bat crest and two friendly ghosts fit without covering text.
+- Ghost/pumpkin scenery stays behind controls, with only one small pumpkin pair at the mobile forest edge. Web stitching does not reduce legibility.
+- Pumpkin buttons retain readable text, a small stem and quiet rib details. Long actions stay button-like, not flat ovals. Their focus outline is not clipped.
 - Target/generated iframe content remains independent from the application theme.
 - Host participant cards and result rank seals are recognisably seasonal, but names, scores and status colours remain easy to read.
 - Admin forms remain usable, including narrow criterion rows and inline actions.

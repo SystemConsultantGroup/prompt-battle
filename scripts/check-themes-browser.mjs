@@ -228,18 +228,39 @@ try {
         const card = document.querySelector('.card'), button = document.querySelector('button');
         return { arch: getComputedStyle(card).borderTopLeftRadius,
           crest: getComputedStyle(card, '::before').backgroundImage,
+          scenery: getComputedStyle(document.body, '::after').backgroundImage,
+          sceneryPointerEvents: getComputedStyle(document.body, '::after').pointerEvents,
+          sceneryZIndex: getComputedStyle(document.body, '::after').zIndex,
           buttonClip: getComputedStyle(button).clipPath,
-          decorationClip: getComputedStyle(button, '::after').clipPath };
+          decorationRadius: getComputedStyle(button, '::after').borderTopLeftRadius,
+          decorationRibs: getComputedStyle(button, '::after').backgroundImage,
+          stem: getComputedStyle(button).backgroundImage };
       });
       assert.match(shape.arch, /(?:180px 112px|140px 96px)/);
       assert.match(shape.crest, /crest\.svg/);
+      assert.match(shape.crest, /ghost\.svg/);
+      assert.match(shape.scenery, /pumpkins\.svg/);
+      if (width > 720) assert.match(shape.scenery, /ghost\.svg/);
+      else assert.doesNotMatch(shape.scenery, /ghost\.svg/);
+      assert.equal(shape.sceneryPointerEvents, 'none');
+      assert.equal(shape.sceneryZIndex, '-1');
       assert.equal(shape.buttonClip, 'none'); // Focus/hit target must not be clipped.
-      assert.match(shape.decorationClip, /^polygon/);
+      assert.equal(shape.decorationRadius, '28px 20px');
+      assert.match(shape.decorationRibs, /radial-gradient/);
+      assert.match(shape.stem, /linear-gradient/);
       await capture(p.page, `halloween-${path}-${width}-login`);
       await p.page.locator('button').first().focus();
       await p.page.keyboard.press('Shift+Tab'); await p.page.keyboard.press('Tab');
       assert.equal(await p.page.locator('button').first().evaluate(el => getComputedStyle(el).outlineWidth), '3px');
       await p.page.screenshot({ path: join(screenshots, `halloween-${path}-${width}-focus.png`) });
+      const button = p.page.locator('button').first();
+      await button.hover();
+      assert.match(await button.evaluate(el => getComputedStyle(el, '::after').backgroundImage), /radial-gradient/);
+      assert.match(await button.evaluate(el => getComputedStyle(el).backgroundImage), /linear-gradient/);
+      await button.evaluate(el => { el.disabled = true; });
+      assert.equal(await button.evaluate(el => getComputedStyle(el).opacity), '0.55');
+      await button.evaluate(el => { el.disabled = false; });
+      await p.page.mouse.move(0, 0);
       if (path !== 'admin') {
         p.send({ type: 'ERROR', message: path === 'host' ? 'bad admin password' : 'unknown room' });
         await capture(p.page, `halloween-${path}-${width}-error`);
@@ -268,7 +289,7 @@ try {
       await p.context.close();
     }
   }
-  checks.push('Halloween 1280/768/375px: arched entrance, crest, unclipped coffin buttons, keyboard focus, 44px hit areas, error/lobby/play/warning/danger/grading/results/admin; no overflow');
+  checks.push('Halloween 1280/768/375px: arched entrance, ghost/crest decorations, pumpkin scenery, unclipped pumpkin buttons with stems/ribs, keyboard focus, 44px hit areas, error/lobby/play/warning/danger/grading/results/admin; no overflow');
   for (const width of [1280, 375]) {
     const p = await pageFor({ path: 'client', width, reducedMotion: 'reduce' });
     assert.equal(await p.page.locator('.card').evaluate(el => getComputedStyle(el).animationName), 'none');
@@ -279,6 +300,7 @@ try {
   }
   const highContrast = await pageFor({ path: 'client', width: 375 });
   await highContrast.page.emulateMedia({ forcedColors: 'active' });
+  assert.equal(await highContrast.page.locator('body').evaluate(el => getComputedStyle(el, '::after').display), 'none');
   assert.equal(await highContrast.page.locator('button').evaluate(el => getComputedStyle(el, '::after').display), 'none');
   assert.equal(await highContrast.page.locator('button').evaluate(el => getComputedStyle(el).borderTopWidth), '2px');
   await capture(highContrast.page, 'halloween-client-375-forced-colors');

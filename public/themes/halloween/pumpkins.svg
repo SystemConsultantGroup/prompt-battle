@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140" fill="none">
+  <!-- Two paper-cut jack-o'-lanterns resting together at the forest edge. -->
+  <ellipse cx="100" cy="126" rx="88" ry="9" fill="#080e0a" opacity=".45"/>
+  <g stroke="#080e0a" stroke-width="3" stroke-linejoin="round">
+    <path d="m65 48-4-23 13-11 10 5-11 13 5 16" fill="#718b51"/>
+    <path d="M72 47C42 29 16 51 16 81c0 28 20 45 42 43 10 5 19 5 29 0 23 2 42-15 42-43 0-30-25-52-57-34Z" fill="#ffa447"/>
+    <path d="M54 47C37 61 34 92 48 113m42-66c17 14 20 45 6 66" stroke="#e57a28" stroke-width="6"/>
+    <path d="M71 51q-8 26-2 42" stroke="#ffbd72" stroke-width="5"/>
+    <g fill="#201408" stroke="none">
+      <path d="m35 76 19-14 5 19Zm69 0L85 62l-5 19ZM69 81l-7 12h14Z"/>
+      <path d="m40 95 18 7 5-6 10 11 9-7 20-6-13 21-17 4-18-6Z"/>
+    </g>
+    <path d="m144 71 3-18 11-5 6 8-10 6-1 12" fill="#718b51"/>
+    <path d="M148 73c-22-13-44 4-44 25 0 20 15 32 32 30q12 6 23 0c17 2 31-11 31-31 0-21-21-37-42-24Z" fill="#e57a28"/>
+    <path d="M134 75q-15 20-5 43m33-43q15 20 5 43" stroke="#b96028" stroke-width="4"/>
+    <g fill="#201408" stroke="none">
+      <path d="m119 94 14-8 2 14Zm56 0-14-8-2 14Z"/>
+      <path d="m130 108 12 5 5-5 6 5 13-6-9 13-17 1Z"/>
+    </g>
+  </g>
+</svg>
