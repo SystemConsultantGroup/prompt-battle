@@ -6,7 +6,7 @@ import { startServer } from '../../src/server.ts';
 test('Halloween skin serves every decoration locally as a self-contained SVG', async () => {
   const css = readFileSync(new URL('../../public/themes/halloween.css', import.meta.url), 'utf8');
   const urls = [...css.matchAll(/url\(["']?([^"')]+)["']?\)/g)].map(match => match[1]);
-  for (const asset of ['night', 'crest', 'web', 'hourglass', 'ghost', 'pumpkins']) {
+  for (const asset of ['night', 'crest', 'web', 'hourglass', 'ghost', 'pumpkins', 'bat']) {
     assert.ok(urls.includes(`/themes/halloween/${asset}.svg`), `${asset} must be used by the skin`);
   }
   const { server, close } = startServer({ port: 0 });

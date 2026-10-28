@@ -1,5 +1,18 @@
 # Halloween theme verification
 
+## Current gameplay and client Halloween update
+
+- Both player and host show the same large live-status instruction for 3000ms on `GAME_START`, not on `STATE` reconnects or timer ticks. Leaving play cancels the guide immediately. Prompt and iframe nodes survive guide dismissal and ordinary ticks.
+- Common player text size is now 18px, with an explanatory autosave/grading placeholder; Halloween notebook line spacing is 30px. These requested common changes are in a separate player/host stylesheet; the original stylesheet hash and empty cartoon skin remain unchanged.
+- The client-only lobby scene has five decorative objects: two drifting ghosts, two flying bats and rocking pumpkins. A keyboard-operable 44px pause button stops the objects and retains the choice across lobby rebuilds. Reduced motion makes them static and hides the unnecessary pause button. The scene is hidden in cartoon and absent on the host board.
+- The player's timer has a pumpkin-ribbed plaque, pumpkin/ghost icons, yellow warning and red danger states. Only the ghost moves briefly on entering danger; the digits remain stationary. The host timer retains its hourglass styling.
+- `npm test`: **160 passed, 0 failed**. New regressions exercise the actual browser JS through a minimal DOM and deterministic timers, including the three-second lifecycle, reconnects, phase cleanup, editor identity/autosave and lobby pause persistence. Local-asset serving now includes the seventh SVG, `bat.svg`.
+- `npm run typecheck` and `git diff --check`: passed.
+- Actual headless Chrome checked desktop player **1920×1080, 1440×900 and 1280×720**, player 390×844 with reduced motion, host 1440×900, and cartoon fallback. Verified object transforms change while running, pause toggles stop motion, reduced-motion animations are off, target/prompt identity is stable across ticks, 18px text/30px line-height, timer icons, automatic guide dismissal, no desktop lobby horizontal/vertical overflow, no overlap between target/editor/timer, at least 400×400px desktop prompt area and no JavaScript exceptions.
+- Visually inspected desktop/mobile lobby and active-editor screenshots plus the desktop start guide, including desktop normal, warning and danger timer states. Desktop inspection found and fixed a small 1280×720 lobby overflow via compact-window spacing, and an orphaned placeholder word by shortening the instruction. Temporary browser driver: `/tmp/prompt-battle-browser.mjs`; temporary screenshots: `/tmp/pb-lobby-{1440,390}.png`, `/tmp/pb-playing-{1440,390}.png`, `/tmp/pb-guide-{client-1440,client-390,host-1440}.png`. These checks use synthetic WebSocket messages and a local HTTP server, not a live LLM run.
+
+The sections below record the earlier theme-only baseline; its original visual-preservation claims predate the explicitly requested common gameplay changes above.
+
 ## Scope and isolation
 
 - Implementation: `public/themes/halloween.css` and six self-contained, local SVG decorations in `public/themes/halloween/`.

@@ -1,0 +1,72 @@
+/* Shared gameplay improvements; keep the original cartoon stylesheet intact. */
+/* The client lobby's seasonal scene is opt-in via the Halloween skin. */
+.lobby-haunt { display: none; }
+
+.play .prompt {
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.play .prompt::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+.start-guide {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: auto;
+  background: var(--bg);
+  color: var(--text);
+  /* A transient announcement, not a modal: never steal focus or input. */
+  pointer-events: none;
+}
+
+.start-guide-panel {
+  width: min(100%, 960px);
+  padding: clamp(24px, 5vw, 56px);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--pop-xl);
+  text-align: center;
+  animation: start-guide-arrive 280ms ease-out;
+}
+
+.start-guide-icons {
+  display: none;
+}
+
+.start-guide-label {
+  margin: 0 0 20px;
+  color: var(--yellow);
+  font-size: clamp(18px, 2.5vw, 26px);
+  font-weight: 900;
+}
+
+.start-guide-message {
+  margin: 0;
+  font-size: clamp(26px, 4vw, 48px);
+  font-weight: 900;
+  line-height: 1.45;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+@keyframes start-guide-arrive {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 720px) {
+  .start-guide { padding: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .start-guide-panel { animation: none; }
+}

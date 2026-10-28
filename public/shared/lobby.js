@@ -16,12 +16,13 @@ export const TIME_LIMITS = [30, 60, 90, 120, 150];
  * view.spin       — { pool, winnerId } to run the reel animation on mount.
  * view.controls   — host's problem-picking buttons, drawn above the reel.
  * view.footer     — host's start button, or the players' waiting note.
+ * view.decoration — optional seasonal scene above the shared game information.
  */
 export function renderLobbyBoard(app, view) {
   const {
     roomCode, players = [], problemTitle = null, problemId = null,
     timeLimitSec = null, onPickTime = null, controls = null,
-    footer = null, spin = null,
+    footer = null, spin = null, decoration = null,
   } = view;
 
   const info = el('div', {},
@@ -50,7 +51,7 @@ export function renderLobbyBoard(app, view) {
         `선택된 문제: ${problemTitle ?? `#${problemId}`} — 제한시간 ${timeLimitSec ?? '?'}초`)
     : el('div', { class: 'selection none' }, '아직 문제를 고르지 않았습니다.');
 
-  mount(app, el('div', { class: 'card wide' }, info,
+  mount(app, el('div', { class: 'card wide' }, ...(decoration ? [decoration] : []), info,
     ...(controls
       ? [el('p', { class: 'eyebrow', style: 'margin-top:20px' }, '문제 고르기'), controls]
       : []),

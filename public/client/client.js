@@ -3,9 +3,11 @@ import { el, mount, timerClass, timerText } from '/shared/dom.js';
 import { renderResults } from '/shared/results.js';
 import { renderGrading } from '/shared/grading.js';
 import { renderLobbyBoard } from '/shared/lobby.js';
+import { createStartGuide } from '/shared/start-guide.js';
 
 const JOIN_KEY = 'pb_join';
 const app = document.getElementById('app');
+const startGuide = createStartGuide();
 let state = { phase: 'JOIN', players: [], promptText: '', variationId: null };
 const bus = connect(onMsg, onOpen);
 
@@ -137,10 +139,12 @@ function onMsg(msg) {
   if (msg.type === 'GRADING_PROGRESS') { state.phase = 'GRADING'; state.progress = msg; }
   if (msg.type === 'RESULT') { state.phase = 'RESULT'; state.ranking = msg.ranking; }
   render();
+  if (msg.type === 'GAME_START') startGuide.show();
 }
 let currentScreen = null;
 function render(errMsg) {
   const target = state.phase;
+  if (target !== 'PLAYING') startGuide.hide();
   if (target === 'PLAYING' && currentScreen === 'PLAYING') {
     // Propagate error as a fixed toast on the full-screen editor.
     if (errMsg) showToast(errMsg, 'error', null);
@@ -193,6 +197,25 @@ function renderJoin(errMsg) {
   code.addEventListener('keydown', (e) => { if (e.key === 'Enter') doJoin(); });
   name.addEventListener('keydown', (e) => { if (e.key === 'Enter') doJoin(); });
 }
+let lobbyMotionPaused = false;
+function renderLobbyDecoration() {
+  const scene = el('div', { class: `lobby-haunt${lobbyMotionPaused ? ' is-paused' : ''}` },
+    ...['ghost-left', 'ghost-right', 'bat-left', 'bat-right', 'pumpkins'].map(name =>
+      el('span', { class: `lobby-object lobby-${name}`, 'aria-hidden': 'true' })));
+  const toggle = el('button', {
+    class: 'lobby-motion-toggle ghost',
+    type: 'button',
+    'aria-pressed': String(lobbyMotionPaused),
+    onClick: () => {
+      lobbyMotionPaused = !lobbyMotionPaused;
+      scene.classList.toggle('is-paused', lobbyMotionPaused);
+      toggle.setAttribute('aria-pressed', String(lobbyMotionPaused));
+      toggle.textContent = lobbyMotionPaused ? '장식 움직이기' : '장식 멈추기';
+    },
+  }, lobbyMotionPaused ? '장식 움직이기' : '장식 멈추기');
+  scene.append(toggle);
+  return scene;
+}
 function renderLobby() {
   // The host's board with no controls attached — read-only by construction,
   // so the room watches one roulette spin and one round length together.
@@ -202,6 +225,7 @@ function renderLobby() {
     problemId: state.problemId,
     problemTitle: state.problemTitle,
     timeLimitSec: state.timeLimitSec,
+    decoration: renderLobbyDecoration(),
     footer: el('p', { class: 'eyebrow' }, '호스트가 시작하기를 기다리는 중…'),
     spin: state.spin,
   });
@@ -215,7 +239,11 @@ function renderEditor() {
     ? `/render/variation/${state.variationId}`
     : `/render/target/${state.problemId}`;
   const frame = el('iframe', { class: 'target', src: targetSrc, sandbox: 'allow-scripts' });
-  const ta = el('textarea', { class: 'prompt', placeholder: '만들 UI를 설명하세요…' });
+  const ta = el('textarea', {
+    class: 'prompt',
+    'aria-label': '내 프롬프트',
+    placeholder: '왼쪽 목표 화면을 똑같이 만들 수 있도록 프롬프트를 작성하세요.\n\n배경색, 글자 크기, 버튼 모양, 위치와 간격을 설명하세요.\n\n작성한 내용은 자동으로 저장되며, 제한 시간이 끝나면 마지막으로 저장된 프롬프트로 채점합니다.',
+  });
   ta.value = state.promptText ?? '';
   ta.disabled = !!state.locked;
   ta.addEventListener('input', () => {
