@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none" stroke="#829372" stroke-width="1.2">
+  <!-- Deliberately crooked corner cobweb. -->
+  <path d="M119 1 1 1m118 0L7 44M119 1 40 82m79-81L77 112m42-111v118"/>
+  <path d="M99 1q0 8 2 7 1 8 5 8 3 4 6 3 5 3 7 1M79 1q1 13 5 14 0 12 9 14 4 9 12 8 7 6 14 3M58 1q2 21 8 22 1 18 14 20 8 14 18 12 11 9 21 7M36 1q1 28 11 30 1 23 18 29 11 19 26 17 14 10 28 7M14 1q3 35 13 39 3 30 22 38 14 22 34 23 18 13 36 7"/>
+  <path d="M86 45v32"/><ellipse cx="86" cy="81" rx="3" ry="5" fill="#829372" stroke="none"/>
+  <path d="m84 79-6-3m6 6-6 2m10-5 6-3m-6 6 6 2"/>
+</svg>

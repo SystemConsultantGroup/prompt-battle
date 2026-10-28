@@ -1,74 +1,543 @@
-/* Additive Halloween skin. /styles.css is the immutable original cartoon
-   theme; only pages that load this file receive these overrides. */
+/* Halloween: paper-cut haunted arcade. This file is the only UI override.
+   /styles.css and the empty cartoon skin are an immutable preservation contract.
+   See DESIGN.md for the shape grammar, palette and accessibility decisions. */
 :root {
-  --bg: #15101b;
-  --bg-2: #302037;
-  --surface: #2b2035;
-  --surface-2: #1e1726;
-  --elevated: #41304f;
-  --ink: #09060e;
-  --text: #fff4e6;
-  --muted: #d6bfdc;
-  --faint: #b39fbe;
-
-  /* Preserve the original component token names without editing their source. */
-  --pink: #ff963f;
-  --pink-hot: #ffb76b;
-  --purple: #b89ce5;
-  --cyan: #d0b9ff;
-  --lime: #c2e985;
-  --yellow: #ffd27c;
-  --orange: #e7a070;
+  color-scheme: dark;
+  --bg: #101714;
+  --bg-2: #24362b;
+  --surface: #1c2823;
+  --surface-2: #111b16;
+  --elevated: #304238;
+  --ink: #080e0a;
+  --text: #f3eddd;
+  --muted: #b7c6b7;
+  --faint: #97ac9f;
+  --pink: #ffa447;
+  --pink-hot: #ffbd72;
+  --purple: #92a67b;
+  --cyan: #a8cec0;
+  --lime: #c5e886;
+  --yellow: #ffe6b0;
+  --orange: #d6a170;
   --accent: var(--pink);
-  --on-accent: #211209;
+  --on-accent: #201408;
   --ok: var(--lime);
-  --no: #ff9aac;
+  --no: #ffa19b;
   --gold: var(--yellow);
-  --silver: #e4daed;
+  --silver: #d3ded0;
   --bronze: var(--orange);
+  --h-border: #566950;
+  --h-stitch: #829372;
+  --h-pumpkin-edge: #b96028;
+  --r-sm: 3px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-pill: 6px;
+  --line: 2px;
+  --pop: 0 4px 0 var(--ink);
+  --pop-lg: 0 6px 0 var(--ink), 0 12px 28px rgb(8 14 10 / .24);
+  --pop-xl: 0 8px 0 var(--ink), 0 20px 48px rgb(8 14 10 / .4);
+  --ring: 0 0 0 4px var(--cyan);
 }
 
 body {
-  /* Static cobweb arcs + spokes, behind rather than over the interactive UI. */
-  background-image:
-    repeating-radial-gradient(circle at 100% 0%, transparent 0 47px, rgba(208, 185, 255, .13) 48px 49px, transparent 50px 80px),
-    repeating-conic-gradient(from 180deg at 100% 0%, rgba(208, 185, 255, .13) 0deg 1deg, transparent 1deg 18deg),
-    radial-gradient(ellipse at 10% 100%, rgba(255, 150, 63, .12), transparent 60%),
-    radial-gradient(ellipse at 70% 0%, var(--bg-2), transparent 65%);
-  background-size: 240px 240px, 240px 240px, 100% 100%, 100% 100%;
-  background-position: top right, top right, center, center;
+  display: flow-root;
+  height: auto;
+  position: relative;
+  isolation: isolate;
+  background-image: radial-gradient(ellipse at 50% 10%, var(--bg-2), transparent 68%);
+  background-size: 100% 100dvh;
   background-repeat: no-repeat;
 }
 
-input,
-textarea,
-select {
-  box-shadow: inset 3px 3px 0 rgba(9, 6, 14, .45);
+/* The scenery is behind the entire application, never over a hit target. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url("/themes/halloween/night.svg") center bottom / cover no-repeat;
+  opacity: .85;
 }
 
-input:focus,
-textarea:focus,
-select:focus {
-  box-shadow: inset 3px 3px 0 rgba(9, 6, 14, .3), var(--ring);
+body:has(.play, .dash)::before {
+  opacity: .3;
 }
 
-.reel {
-  box-shadow: inset 4px 4px 0 rgba(9, 6, 14, .4);
+h1, h2, h3, h4 {
+  letter-spacing: .015em;
 }
 
-.card,
-.pcard:nth-child(odd),
-.pcard:nth-child(even),
-.results-row .result:nth-child(1) {
+/* Stitched paper panels; real controls remain above both decorations. */
+.card {
+  position: relative;
+  isolation: isolate;
+  max-width: min(500px, calc(100% - 32px));
+  margin: clamp(24px, 7vh, 64px) auto;
+  padding: 32px;
+  border-color: var(--h-border);
+  border-radius: 36px 8px 36px 8px;
+  box-shadow: inset 0 1px 0 rgb(243 237 221 / .08), var(--pop-xl);
+  rotate: 0deg;
+  animation: halloween-arrive 280ms ease-out;
+}
+
+.card::before, .card::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.card::before {
+  top: 10px;
+  right: 10px;
+  width: 104px;
+  height: 104px;
+  background: url("/themes/halloween/web.svg") center / contain no-repeat;
+  opacity: .38;
+}
+
+.card::after {
+  inset: 9px;
+  border: 1px dashed var(--h-stitch);
+  border-radius: 28px 3px 28px 3px;
+  opacity: .48;
+}
+
+/* The entrance is a tombstone, crowned with a pumpkin / bat paper cut-out. */
+.card:has(> h1) {
+  padding: 132px 28px 28px;
+  border-radius: 180px 180px 12px 12px / 112px 112px 12px 12px;
+}
+
+.card:has(> h1)::before {
+  inset: 16px auto auto 50%;
+  width: 168px;
+  height: 112px;
+  transform: translateX(-50%);
+  background-image: url("/themes/halloween/crest.svg");
+  opacity: 1;
+}
+
+.card:has(> h1)::after {
+  border-radius: inherit;
+}
+
+.card h1 {
+  margin: 0 0 24px;
+  color: var(--yellow);
+  font-size: clamp(28px, 4.5vw, 42px);
+  line-height: 1.12;
+  letter-spacing: .025em;
+  text-align: center;
+  text-shadow: 0 3px 0 var(--ink);
+}
+
+.card h1::after {
+  content: "";
+  display: block;
+  width: 48px;
+  margin: 16px auto 0;
+  border-top: 3px double var(--accent);
+}
+
+.card.wide {
+  max-width: min(980px, calc(100% - 32px));
+}
+
+@keyframes halloween-arrive {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The clipped layers make a coffin/ticket, NOT the interactive button itself.
+   That leaves its full hit area and keyboard focus outline intact. */
+button {
+  --h-button-fill: var(--accent);
+  --h-button-hover: var(--pink-hot);
+  --h-button-edge: var(--h-pumpkin-edge);
+  --h-button-text: var(--on-accent);
+  position: relative;
+  isolation: isolate;
+  min-height: 44px;
+  border: 0;
+  border-radius: 2px;
+  color: var(--h-button-text);
+  box-shadow: none;
+  transition: transform 160ms ease-out;
+}
+
+button, button:hover:not(:disabled), button:active:not(:disabled),
+button:focus-visible, button:disabled, button.ghost,
+button.ghost:hover:not(:disabled), button.on, button.on:hover:not(:disabled),
+.timeopts button, .timeopts button:hover:not(:disabled), .timeopts button.on,
+.reel button, .reel button:hover:not(:disabled) {
+  background: transparent;
+  box-shadow: none;
+}
+
+button::before, button::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0 50%);
+}
+
+button::before {
+  inset: 0;
+  background: var(--h-button-edge);
+}
+
+button::after {
+  inset: 2px 2px 5px;
+  background: var(--h-button-fill);
+  box-shadow: inset 0 1px 0 rgb(243 237 221 / .18);
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+button:hover:not(:disabled)::after {
+  background: var(--h-button-hover);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+  transition-duration: 100ms;
+}
+
+button:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 4px;
+}
+
+button.ghost, .timeopts button, .reel button {
+  --h-button-fill: var(--elevated);
+  --h-button-hover: var(--h-border);
+  --h-button-edge: var(--h-stitch);
+  --h-button-text: var(--text);
+  color: var(--h-button-text);
+}
+
+button.on, .timeopts button.on {
+  --h-button-fill: var(--lime);
+  --h-button-hover: var(--lime);
+  --h-button-edge: var(--h-stitch);
+  --h-button-text: var(--ink);
+  color: var(--h-button-text);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+/* Stitching and ruled paper replace the cartoon's rounded inset fields. */
+input, textarea, select {
+  border: 1px solid var(--h-border);
+  border-bottom: 2px dashed var(--h-stitch);
+  border-radius: 3px 12px 3px 12px;
+  box-shadow: inset 0 3px 0 rgb(8 14 10 / .5);
+}
+
+input:focus, textarea:focus, select:focus {
+  background-color: var(--surface-2);
+  border-color: var(--cyan);
+  box-shadow: inset 0 3px 0 rgb(8 14 10 / .4), var(--ring);
+}
+
+.prompt {
+  line-height: 26px;
+  background-image: repeating-linear-gradient(transparent 0 25px, rgb(146 166 123 / .11) 25px 26px);
+  background-attachment: local;
+}
+
+.eyebrow, .goal h3, .work h3 {
+  color: var(--muted);
+  letter-spacing: .1em;
+}
+
+.roomcode {
+  position: relative;
+  padding: 10px 24px;
+  background: var(--surface-2);
+  color: var(--accent);
+  border: 2px solid var(--h-stitch);
+  border-radius: 16px 2px 16px 2px;
+  box-shadow: var(--pop);
   rotate: 0deg;
 }
 
-/* Do not replace semantic warning/error colors with the pumpkin CTA color. */
+.roomcode::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px dashed var(--h-border);
+  border-radius: 9px 0 9px 0;
+  pointer-events: none;
+}
+
+.chip, .rme {
+  border: 1px solid var(--h-stitch);
+  border-radius: 3px 10px 3px 10px;
+}
+
+.chip {
+  padding: 5px 12px;
+}
+
+.selection, .reel, .variations-box {
+  border: 1px dashed var(--h-stitch);
+  border-radius: 3px 14px 3px 14px;
+  box-shadow: inset 0 3px 0 rgb(8 14 10 / .3);
+}
+
+.reel-card {
+  border-color: var(--h-border);
+  border-radius: 16px 3px 16px 3px;
+}
+
+/* Quiet inset frames: do not clip, mask, tint or skin iframe contents. */
+.target, .result-frame, .goal-frame {
+  border: 3px double var(--h-stitch);
+  border-radius: 4px;
+  box-shadow: 0 4px 0 var(--ink);
+  color-scheme: light;
+}
+
+.goal, .work, .dash-goal {
+  min-width: 0;
+}
+
+/* An arched countdown plaque and a cut-out hourglass, not a generic number. */
+.timer {
+  padding: 6px 16px;
+  border: 1px solid var(--h-border);
+  border-radius: 36px 36px 6px 6px;
+  background: var(--surface-2);
+  text-shadow: 0 3px 0 var(--ink);
+}
+
+.timer::before {
+  content: "";
+  display: inline-block;
+  width: 24px;
+  height: 32px;
+  margin-right: 12px;
+  vertical-align: .02em;
+  background: currentColor;
+  mask: url("/themes/halloween/hourglass.svg") center / contain no-repeat;
+}
+
+.timer.warn {
+  border-color: var(--yellow);
+}
+
 .timer.danger {
   color: var(--no);
+  border-color: var(--no);
+  background-image: linear-gradient(rgb(255 161 155 / .1), rgb(255 161 155 / .1));
+  animation: none;
+}
+
+/* Smaller gravestones repeat the entrance silhouette across the host board. */
+.pcard {
+  position: relative;
+  padding: 28px 16px 16px;
+  border-color: var(--h-border);
+  border-radius: 48% 48% 6px 6px / 28px 28px 6px 6px;
+}
+
+.pcard::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  left: calc(50% - 16px);
+  width: 32px;
+  border-top: 3px double var(--h-stitch);
+  pointer-events: none;
+}
+
+.pcard:nth-child(odd), .pcard:nth-child(even) {
+  rotate: 0deg;
+}
+
+.ptext, .rprompt {
+  border-color: var(--h-border);
+  border-radius: 2px;
+}
+
+.gradebar {
+  height: 20px;
+  border: 1px solid var(--h-stitch);
+  border-radius: 2px 10px 2px 10px;
+}
+
+.gradebar-fill {
+  background-image: repeating-linear-gradient(115deg, transparent 0 10px, rgb(8 14 10 / .16) 10px 13px);
+}
+
+/* Standings become engraved tombstones with pumpkin-shaped rank seals. */
+.results-row {
+  padding: 6px 6px 14px;
+}
+
+.result {
+  position: relative;
+  padding: 32px 20px 20px;
+  border-color: var(--h-border);
+  border-radius: 70px 70px 8px 8px / 36px 36px 8px 8px;
+}
+
+.rhead {
+  gap: 8px;
+}
+
+.ruser {
+  min-width: 0;
+  flex: 1;
+  font-size: 16px;
+}
+
+.rank {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border: 2px solid var(--ink);
+  border-radius: 42% 42% 44% 44% / 36% 36% 55% 55%;
+  box-shadow: inset 4px 0 0 rgb(8 14 10 / .12), inset -4px 0 0 rgb(8 14 10 / .12);
+  rotate: 0deg;
+}
+
+.rank::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: calc(50% - 3px);
+  width: 6px;
+  height: 8px;
+  border-radius: 3px 0 0;
+  background: var(--h-stitch);
+  transform: rotate(16deg);
+  pointer-events: none;
+}
+
+.results-row .result:nth-child(1) {
+  border-color: var(--accent);
+  box-shadow: var(--pop-lg), 0 0 0 2px var(--accent);
+  rotate: 0deg;
+}
+
+.results-row .result.mine {
+  box-shadow: var(--pop-lg), 0 0 0 3px var(--cyan);
+}
+
+.rprompt-label {
+  background: var(--elevated);
+  color: var(--yellow);
+  border-bottom: 1px dashed var(--h-stitch);
+}
+
+.admin-grid {
+  gap: 24px;
+  margin-top: 32px;
+}
+
+.admin-grid > .card {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.theme-settings::before {
+  width: 64px;
+  height: 64px;
+  opacity: .28;
+}
+
+.admin-grid li {
+  border-color: var(--h-border);
+  border-radius: 2px 10px 2px 10px;
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+
+.crit-row input {
+  min-width: 0;
+}
+
+.toast {
+  border: 1px solid var(--ink);
+  border-radius: 2px 14px 2px 14px;
 }
 
 .toast.error {
-  background: #f8a0b6;
-  color: #29101c;
+  background: var(--no);
+  color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  body::before {
+    background-position: 78% bottom;
+    opacity: .55;
+  }
+
+  .card {
+    max-width: calc(100% - 24px);
+    padding: 24px;
+  }
+
+  .card:has(> h1) {
+    padding: 124px 20px 24px;
+    border-radius: 140px 140px 10px 10px / 96px 96px 10px 10px;
+  }
+
+  .card:has(> h1)::before {
+    top: 12px;
+  }
+
+  .card.wide {
+    max-width: calc(100% - 24px);
+  }
+
+  .card.wide::before {
+    width: 72px;
+    height: 72px;
+  }
+
+  .admin-grid > .card {
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+
+  button:hover:not(:disabled), button:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+@media (forced-colors: active) {
+  body::before, .card::before, .card::after,
+  button::before, button::after, .timer::before {
+    display: none;
+  }
+
+  :root button {
+    background: ButtonFace !important;
+    color: ButtonText !important;
+    border: 2px solid ButtonText;
+    opacity: 1;
+  }
+
+  button:focus-visible {
+    outline-color: Highlight;
+  }
 }

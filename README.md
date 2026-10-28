@@ -38,7 +38,8 @@ npm run dev                 # 개발 서버 (자동 재시작)  — 또는 npm s
 | [시작하기](docs/getting-started.md) | 요구사항, 설치, 환경변수, 시드, 실행, **로컬/LAN 호스팅**, 트러블슈팅 |
 | [호스트 가이드](docs/hosting-guide.md) | 방 개설, 4가지 문제 선택 모드, 게임 진행, 결과, 재접속 |
 | [플레이어 가이드](docs/player-guide.md) | 입장, 프롬프트 작성, 자동 제출, 재접속 |
-| [관리자 가이드](docs/admin-guide.md) | 계정·문제·바리에이션 관리, **채점 기준 작성 가이드**, 채점 방식, 인젝션 방어 |
+| [관리자 가이드](docs/admin-guide.md) | 계정·문제·바리에이션·테마 관리, **채점 기준 작성 가이드**, 채점 방식, 인젝션 방어 |
+| [테마 QA](docs/theme-qa.md) | 카툰 원본 보존, 할로윈 디자인, 선택적 브라우저 회귀 검증 |
 
 설계 스펙과 구현 계획은 [`docs/superpowers/`](docs/superpowers/)에 있습니다.
 
