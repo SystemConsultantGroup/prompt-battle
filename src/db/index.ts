@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { DEFAULT_THEME, isThemeId, type ThemeId } from '../config/themes.ts';
 
 export type Database = DatabaseSync;
 export type Account = { id: number; username: string; createdAt: string };
@@ -29,6 +30,20 @@ export function openDb(path: string): Database {
   db.exec('PRAGMA foreign_keys = ON;');
   db.exec(SCHEMA);
   return db;
+}
+
+// A missing or unrecognised setting always falls back to the original theme.
+// Opening an existing DB must never overwrite an administrator's selection.
+export function getTheme(db: Database): ThemeId {
+  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'theme'")
+    .get() as { value: string } | undefined;
+  return isThemeId(row?.value) ? row.value : DEFAULT_THEME;
+}
+
+export function setTheme(db: Database, theme: ThemeId): void {
+  if (!isThemeId(theme)) throw new Error('unknown theme');
+  db.prepare(`INSERT INTO app_settings(key, value) VALUES('theme', ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value`).run(theme);
 }
 
 const now = () => new Date().toISOString();

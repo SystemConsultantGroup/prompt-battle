@@ -2,7 +2,9 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Database } from '../db/index.ts';
 import { createAccount, listAccounts, deleteAccount, createProblem, getProblem,
   listProblems, listCategories, deleteProblem, updateProblem, replaceCriteria,
-  addCriterion, listCriteria, addVariation, listVariations, deleteVariation } from '../db/index.ts';
+  addCriterion, listCriteria, addVariation, listVariations, deleteVariation,
+  getTheme, setTheme } from '../db/index.ts';
+import { THEMES, isThemeId } from '../config/themes.ts';
 import { constantTimeEqual } from '../util/secure.ts';
 
 async function readBody(req: IncomingMessage): Promise<any> {
@@ -25,6 +27,24 @@ export async function handleApi(
     json(res, 401, { error: 'unauthorized' }); return true;
   }
   const method = req.method ?? 'GET';
+
+  if (url === '/api/settings/theme' && method === 'GET') {
+    res.setHeader('cache-control', 'no-store');
+    json(res, 200, { theme: getTheme(db), themes: THEMES });
+    return true;
+  }
+  if (url === '/api/settings/theme' && method === 'PUT') {
+    let body: unknown;
+    try { body = await readBody(req); }
+    catch { json(res, 400, { error: 'invalid JSON' }); return true; }
+    const theme = body && typeof body === 'object' && 'theme' in body ? body.theme : undefined;
+    if (!isThemeId(theme)) {
+      json(res, 400, { error: 'unknown theme' }); return true;
+    }
+    setTheme(db, theme);
+    json(res, 200, { theme });
+    return true;
+  }
 
   if (url === '/api/accounts' && method === 'GET') { json(res, 200, listAccounts(db)); return true; }
   if (url === '/api/accounts' && method === 'POST') {

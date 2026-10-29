@@ -1,0 +1,49 @@
+/* Scoped to the NEW settings panel. No selectors may restyle existing UI. */
+.theme-settings {
+  grid-column: 1 / -1;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  rotate: 0deg;
+}
+
+.theme-settings h2 {
+  margin-top: 0;
+}
+
+.theme-settings label {
+  display: block;
+  margin-top: var(--sp-4);
+  font-weight: 800;
+}
+
+.theme-settings select {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin-top: var(--sp-2);
+}
+
+.theme-settings button {
+  width: auto;
+  min-height: 44px;
+}
+
+.theme-settings [hidden] {
+  display: none;
+}
+
+.theme-settings .theme-help,
+.theme-settings .theme-description {
+  color: var(--muted);
+  max-width: 75ch;
+}
+
+.theme-settings .theme-status {
+  min-height: 1.5em;
+  font-weight: 700;
+}
+
+.theme-settings .theme-status.error {
+  color: var(--no);
+}

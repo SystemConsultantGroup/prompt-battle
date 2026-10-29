@@ -1,4 +1,5 @@
 import { el, mount } from '/shared/dom.js';
+import { renderThemeSettings } from '/admin/theme-settings.js';
 
 const app = document.getElementById('app');
 let pw = '';
@@ -183,7 +184,7 @@ async function renderConsole() {
       el('button', { onClick: () => enterEditMode(p.id) }, '편집'), ' ',
       el('button', { onClick: async () => { await api(`/api/problems/${p.id}`, { method: 'DELETE' }); renderConsole(); } }, '삭제')))));
 
-  mount(app, el('div', { class: 'admin-grid' }, accountsPanel, problemsPanel));
+  mount(app, el('div', { class: 'admin-grid' }, accountsPanel, problemsPanel, renderThemeSettings(api)));
 }
 
 renderLogin();

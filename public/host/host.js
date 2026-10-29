@@ -4,9 +4,11 @@ import { renderDashboard } from '/host/dashboard.js';
 import { renderResults } from '/host/results.js';
 import { renderGrading } from '/shared/grading.js';
 import { renderLobbyBoard } from '/shared/lobby.js';
+import { createStartGuide } from '/shared/start-guide.js';
 
 const HOST_KEY = 'pb_host';
 const app = document.getElementById('app');
+const startGuide = createStartGuide();
 let state = {
   phase: 'AUTH', room: null, mirror: {}, remaining: null, progress: null,
   ranking: null, variationId: null, timeLimitSec: null,
@@ -145,6 +147,7 @@ function onMsg(msg) {
   if (msg.type === 'GRADING_PROGRESS') { state.phase = 'GRADING'; state.progress = msg; }
   if (msg.type === 'RESULT') { state.phase = 'RESULT'; state.ranking = msg.ranking; }
   render();
+  if (msg.type === 'GAME_START') startGuide.show();
 }
 
 function renderAuth(errMsg) {
@@ -242,6 +245,7 @@ function handleResults() {
 }
 
 function render(errMsg) {
+  if (state.phase !== 'PLAYING') startGuide.hide();
   if (state.phase === 'AUTH') return renderAuth(errMsg);
   // For full-screen phases, pass the error as a fixed toast.
   if (errMsg) showToast(errMsg, 'warn', null);

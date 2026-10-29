@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 120" fill="none">
+  <!-- A friendly folded-paper ghost; decorative CSS background only. -->
+  <path d="M19 105 15 58C12 31 26 12 48 12s36 19 33 46l-4 47-15-10-14 12-14-12Z" fill="#080e0a" opacity=".35" transform="translate(0 6)"/>
+  <path d="M19 105 15 58C12 31 26 12 48 12s36 19 33 46l-4 47-15-10-14 12-14-12Z" fill="#f3eddd" stroke="#080e0a" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M64 19c14 21 8 53-2 76l15 10 4-47c2-18-4-32-17-39Z" fill="#d3ded0"/>
+  <path d="m24 77 3 16m45-21-3 13" stroke="#b7c6b7" stroke-width="2" stroke-linecap="round"/>
+  <g fill="#201408">
+    <ellipse cx="35" cy="51" rx="5" ry="8" transform="rotate(-8 35 51)"/>
+    <ellipse cx="59" cy="51" rx="5" ry="8" transform="rotate(8 59 51)"/>
+    <path d="M41 67q7 8 14 0-1 13-7 13t-7-13Z"/>
+  </g>
+  <g fill="#ffa447" opacity=".65">
+    <ellipse cx="27" cy="66" rx="6" ry="3"/>
+    <ellipse cx="68" cy="66" rx="6" ry="3"/>
+  </g>
+</svg>
