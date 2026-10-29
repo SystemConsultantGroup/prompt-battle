@@ -6,7 +6,7 @@ export class FakeProvider implements LLMProvider {
   async implement(userPrompt: string, _c: SystemConstraints): Promise<GeneratedCode> {
     return { html: `<div>${userPrompt}</div>`, css: '', js: '' };
   }
-  async grade(code: GeneratedCode, criteria: Criterion[]): Promise<GradeResult> {
+  async grade(code: GeneratedCode, criteria: Criterion[], _reference?: GeneratedCode): Promise<GradeResult> {
     const hay = `${code.html} ${code.css} ${code.js}`.toLowerCase();
     return {
       items: criteria.map(c => {

@@ -30,3 +30,17 @@ test('bad JSON throws', async () => {
     fetchImpl: stubFetch('no json here') as any });
   await assert.rejects(() => p.implement('x', { systemPrompt: 's' }));
 });
+
+test('grade never sends sampling params (current Claude models reject them)', async () => {
+  let body: any;
+  const fetchImpl = async (_url: string, init: RequestInit) => {
+    body = JSON.parse(String(init.body));
+    return stubFetch('{"items":[{"id":1,"evidence":"e","level":4}]}')();
+  };
+  const p = new ClaudeProvider({ apiKey: 'k', model: 'm', fetchImpl: fetchImpl as any });
+  const g = await p.grade({ html: '', css: '', js: '' },
+    [{ id: 1, problemId: 1, kind: 'basic', description: 'x', sortOrder: 0 }]);
+  assert.equal(g.items[0].rate, 1);
+  assert.equal(body.temperature, undefined);
+  assert.doesNotMatch(body.system, /lenient|generous/i);
+});

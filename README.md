@@ -54,10 +54,10 @@ Node 서버 (단일 프로세스)
   GameManager 인메모리 방 상태 + 서버 타이머 (권위 상태, 재접속·유예·슬롯 정리)
   SQLite      문제·바리에이션·채점기준·계정·사이트 테마 (node:sqlite)
   LLMProvider 인터페이스 → OpenAIProvider / ClaudeProvider / FakeProvider
-  grading     implement → grade → 결정적 점수/등수 산출
+  grading     implement → grade(목표 코드 대비 0~4 루브릭) + 결정적 정밀도 → 점수/등수 산출
 ```
 
-- **인젝션 방어**: 플레이어 프롬프트는 `<`/`>`/`&`를 이스케이프해 격리, 채점 단계는 코드+기준만 봄, 생성/목표 UI는 엄격한 CSP + `sandbox="allow-scripts"` iframe에서만 렌더. 자세히는 [관리자 가이드](docs/admin-guide.md#인젝션-방어).
+- **인젝션 방어**: 플레이어 프롬프트는 `<`/`>`/`&`를 이스케이프해 격리, 채점 단계는 생성 코드+목표 코드+기준만 봄, 생성/목표 UI는 엄격한 CSP + `sandbox="allow-scripts"` iframe에서만 렌더. 자세히는 [관리자 가이드](docs/admin-guide.md#인젝션-방어).
 - **다중 테마**: 관리자 콘솔 하단에서 **카툰 / 할로윈**을 선택합니다. SQLite에 저장되며 새로 열거나 새로고침한 화면에만 적용됩니다. 기존 카툰 CSS는 바이트 단위 원본을 보존하고, 목표/생성 UI와 게임·채점에는 영향을 주지 않습니다. [설정 안내](docs/admin-guide.md#사이트-테마) · [SQLite 영속 저장](docs/hosting-guide.md#sqlite-영속-저장과-단일-파드-운영).
 - **관리자 API**: 모든 `/api/*`는 `x-admin-password` 게이트를 통과해야 하며, 인증은 어떤 DB 변경보다 먼저 검사됩니다(상수 시간 비교).
 

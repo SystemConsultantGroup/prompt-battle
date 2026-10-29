@@ -22,7 +22,8 @@ function mgr() {
 }
 
 const ranking: PlayerResult[] = [
-  { username: 'alice', total: 0.9, basicScore: 1, detailScore: 0.8, prompt: 'p', items: [] },
+  { username: 'alice', total: 0.9, basicScore: 1, detailScore: 0.8, fidelityScore: 0.7,
+    rank: 1, prompt: 'p', items: [] },
 ];
 
 test('the summary carries the finished board so a reconnect restores it', () => {
