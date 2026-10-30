@@ -52,6 +52,40 @@ test('a non-2xx response throws (surfacing auth/other errors)', async () => {
   await assert.rejects(() => p.implement('x', { systemPrompt: 's' }), /openai 401/);
 });
 
+test('400 includes the API message, type, code and offending parameter', async () => {
+  const p = new OpenAIProvider({ apiKey: 'secret-key', model: 'gpt-5-nano',
+    fetchImpl: stubResponse({ error: {
+      message: 'Unsupported parameter: temperature', type: 'invalid_request_error',
+      code: 'unsupported_parameter', param: 'temperature',
+    } }, 400) });
+  await assert.rejects(() => p.implement('x', { systemPrompt: 's' }), {
+    message: 'openai 400: message: Unsupported parameter: temperature; type: invalid_request_error; code: unsupported_parameter; param: temperature',
+  });
+});
+
+for (const [name, body, expected] of [
+  ['plain text', 'Bad gateway', 'openai 502: Bad gateway'],
+  ['empty body', '', 'openai 502'],
+  ['redacted key', 'Invalid key secret-key', 'openai 502: Invalid key [REDACTED]'],
+  ['bounded body', 'x'.repeat(3000), `openai 502: ${'x'.repeat(2000)}`],
+] as const) {
+  test(`handles ${name} in an error response`, async () => {
+    const p = new OpenAIProvider({ apiKey: 'secret-key', model: 'gpt-5-nano',
+      fetchImpl: async () => new Response(body, { status: 502 }) });
+    await assert.rejects(() => p.implement('x', { systemPrompt: 's' }), { message: expected });
+  });
+}
+
+test('preserves HTTP status when the error body cannot be read', async () => {
+  const p = new OpenAIProvider({ apiKey: 'secret-key', model: 'gpt-5-nano',
+    fetchImpl: async () => {
+      return new Response(new ReadableStream({
+        start(controller) { controller.error(new Error('read failed')); },
+      }), { status: 400 });
+    } });
+  await assert.rejects(() => p.implement('x', { systemPrompt: 's' }), { message: 'openai 400' });
+});
+
 for (const model of ['gpt-5-nano', 'gpt-4o-mini']) {
   test(`sends a stateless Responses JSON request for ${model}`, async () => {
     let capturedUrl: unknown;

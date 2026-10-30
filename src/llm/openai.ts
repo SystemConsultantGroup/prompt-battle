@@ -31,7 +31,26 @@ export class OpenAIProvider implements LLMProvider {
         text: { format: { type: 'json_object' } },
       }),
     });
-    if (!res.ok) throw new Error(`openai ${res.status}`);
+    if (!res.ok) {
+      // Fetch does not include the API's diagnostic body in its status error.
+      // Keep the useful fields, but bound output and never echo our API key.
+      let detail = '';
+      try {
+        const body = await res.text();
+        detail = body;
+        try {
+          const error = JSON.parse(body)?.error;
+          if (error && typeof error === 'object') {
+            detail = ['message', 'type', 'code', 'param']
+              .filter(key => typeof error[key] === 'string' && error[key])
+              .map(key => `${key}: ${error[key]}`).join('; ');
+          }
+        } catch { /* Non-JSON error bodies are still useful diagnostics. */ }
+      } catch { /* Preserve the HTTP status even if reading the body fails. */ }
+      if (this.opts.apiKey) detail = detail.split(this.opts.apiKey).join('[REDACTED]');
+      detail = detail.replace(/[\r\n\t]+/g, ' ').trim().slice(0, 2000);
+      throw new Error(`openai ${res.status}${detail ? `: ${detail}` : ''}`);
+    }
     const data = await res.json() as {
       status?: string;
       incomplete_details?: { reason?: string };
