@@ -54,3 +54,32 @@ test('sends a Bearer auth header and the configured model', async () => {
   assert.equal(body.model, 'gpt-4o-mini');
   assert.equal(body.response_format.type, 'json_object');
 });
+
+test('grade accepts a rubric level and sends deterministic sampling', async () => {
+  let body: any;
+  const fetchImpl = async (_url: string, init: RequestInit) => {
+    body = JSON.parse(String(init.body));
+    return stubFetch('{"items":[{"id":1,"evidence":"gen 4px vs ref 8px","level":2}]}')();
+  };
+  const p = new OpenAIProvider({ apiKey: 'k', model: 'gpt-4o', fetchImpl: fetchImpl as any });
+  const g = await p.grade({ html: '', css: '', js: '' },
+    [{ id: 1, problemId: 1, kind: 'detail', description: 'x', sortOrder: 0 }],
+    { html: '<b>ref</b>', css: '', js: '' });
+  assert.equal(g.items[0].rate, 0.5);
+  assert.equal(g.items[0].passed, false);
+  assert.equal(g.items[0].reason, 'gen 4px vs ref 8px');
+  assert.equal(body.temperature, 0);
+  assert.equal(typeof body.seed, 'number');
+  assert.match(body.messages[1].content, /<b>ref<\/b>/);
+});
+
+test('implement keeps default sampling (creative variety is part of the game)', async () => {
+  let body: any;
+  const fetchImpl = async (_url: string, init: RequestInit) => {
+    body = JSON.parse(String(init.body));
+    return stubFetch('{"html":"","css":"","js":""}')();
+  };
+  const p = new OpenAIProvider({ apiKey: 'k', model: 'gpt-4o', fetchImpl: fetchImpl as any });
+  await p.implement('x', { systemPrompt: 's' });
+  assert.equal(body.temperature, undefined);
+});

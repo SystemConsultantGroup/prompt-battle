@@ -70,3 +70,13 @@
 @media (prefers-reduced-motion: reduce) {
   .start-guide-panel { animation: none; }
 }
+
+/* Grader evidence under each result item: why an item scored what it did. */
+.ritems .ritem-reason {
+  display: block;
+  margin: 2px 0 0 1.4em;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}

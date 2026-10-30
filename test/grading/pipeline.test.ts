@@ -71,3 +71,40 @@ test('gradeRoom leaves genToken undefined for a submission whose provider call t
   assert.equal(typeof alice?.genToken, 'string');
   assert.ok(genStore.get(alice!.genToken!));
 });
+
+test('gradeRoom grades against the supplied reference and adds fidelity', async () => {
+  const seen: (GeneratedCode | undefined)[] = [];
+  const provider: LLMProvider = {
+    async implement(userPrompt: string): Promise<GeneratedCode> {
+      return { html: `<button>${userPrompt}</button>`, css: '', js: '' };
+    },
+    async grade(_code, criteria, reference): Promise<GradeResult> {
+      seen.push(reference);
+      return { items: criteria.map(c => ({ id: c.id, passed: true, rate: 1, reason: 'ok' })) };
+    },
+  };
+  const reference = { html: '<button>시작하기</button>', css: '', js: '' };
+  const results = await gradeRoom({
+    provider, problem, criteria, reference,
+    submissions: [{ username: 'exact', prompt: '시작하기' }, { username: 'off', prompt: '시작' }],
+  });
+  assert.equal(seen[0], reference);
+  // Same rubric verdicts, but the exact text reproduces the target better.
+  assert.deepEqual(results.map(r => r.username), ['exact', 'off']);
+  assert.deepEqual(results.map(r => r.rank), [1, 2]);
+  assert.ok(results[0].fidelityScore > results[1].fidelityScore);
+});
+
+test('gradeRoom defaults the reference to the base problem target', async () => {
+  let seen: GeneratedCode | undefined;
+  const provider: LLMProvider = {
+    async implement(): Promise<GeneratedCode> { return { html: '', css: '', js: '' }; },
+    async grade(_code, criteria, reference): Promise<GradeResult> {
+      seen = reference;
+      return { items: criteria.map(c => ({ id: c.id, passed: false, rate: 0, reason: '' })) };
+    },
+  };
+  await gradeRoom({ provider, problem: { ...problem, targetHtml: '<i>base</i>' }, criteria,
+    submissions: [{ username: 'a', prompt: 'x' }] });
+  assert.equal(seen?.html, '<i>base</i>');
+});

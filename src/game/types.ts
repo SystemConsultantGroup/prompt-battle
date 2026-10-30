@@ -17,9 +17,16 @@ export type ItemVerdict = { id: number; passed: boolean; rate: number; reason: s
 export type GradeResult = { items: ItemVerdict[] };
 export type ResultItem = {
   description: string; kind: 'basic' | 'detail'; passed: boolean; rate: number;
+  /** The grader's one-line evidence for this verdict (shown on the board so
+   *  players can see *why* an item lost points). */
+  reason: string;
 };
 export type PlayerResult = {
   username: string; total: number; basicScore: number; detailScore: number;
+  /** Deterministic code-vs-target closeness (0..1), see grading/fidelity.ts. */
+  fidelityScore: number;
+  /** 1-based standing. Players identical on every ranking key share a rank. */
+  rank: number;
   /** The prompt this player submitted — echoed back so the result screen can
    *  show what actually earned the score. */
   prompt: string;

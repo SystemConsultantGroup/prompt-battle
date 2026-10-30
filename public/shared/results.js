@@ -2,6 +2,9 @@ import { el, mount } from '/shared/dom.js';
 
 const KIND_KO = { basic: '기본', detail: '디테일' };
 
+/** 0..1 → "87.3". One decimal so close finishes read as different scores. */
+const pts = (x) => (Math.round(x * 1000) / 10).toFixed(1);
+
 /**
  * The final standings board. Host and players render the *same* screen — the
  * only differences are the restart control (host-only) and the badge marking
@@ -13,13 +16,19 @@ const KIND_KO = { basic: '기본', detail: '디테일' };
  */
 export function renderResults(app, state, opts = {}) {
   const { showRestart = false, me = null } = opts;
-  const rows = (state.ranking ?? []).map((r, i) => {
+  const ranking = state.ranking ?? [];
+  const tied = (r) => r.rank != null && ranking.filter(x => x.rank === r.rank).length > 1;
+  const rows = ranking.map((r, i) => {
     const items = r.items.map(it => {
       const isPartial = it.rate > 0 && it.rate < 1;
       const cls = it.passed && !isPartial ? 'ok' : isPartial ? 'partial' : 'no';
       const icon = it.passed && !isPartial ? 'O' : isPartial ? '△' : 'X';
+      // The grader's evidence ("gen #5b7cfa vs ref #4a6ae8") explains *why*
+      // an item lost points. Text only — it echoes model output.
+      const reason = (it.reason ?? '').trim();
       return el('li', { class: cls },
-        `${icon} [${KIND_KO[it.kind] ?? it.kind}] ${it.description} (${Math.round(it.rate * 100)}%)`);
+        `${icon} [${KIND_KO[it.kind] ?? it.kind}] ${it.description} (${Math.round(it.rate * 100)}%)`,
+        ...(reason ? [el('span', { class: 'ritem-reason' }, reason)] : []));
     });
     const frame = r.genToken
       ? el('iframe', { class: 'result-frame', src: `/render/gen/${r.genToken}`, sandbox: 'allow-scripts' })
@@ -33,11 +42,13 @@ export function renderResults(app, state, opts = {}) {
     const isMine = me != null && r.username === me;
     return el('div', { class: isMine ? 'result mine' : 'result' },
       el('div', { class: 'rhead' },
-        el('span', { class: 'rank' }, `${i + 1}`),
+        el('span', { class: 'rank' }, `${r.rank ?? i + 1}`),
         el('span', { class: 'ruser' }, r.username),
         ...(isMine ? [el('span', { class: 'rme' }, '나')] : []),
-        el('span', { class: 'rtotal' }, `${Math.round(r.total * 100)}%`)),
-      el('div', { class: 'rsub' }, `기본 ${Math.round(r.basicScore * 100)}% · 디테일 ${Math.round(r.detailScore * 100)}%`),
+        el('span', { class: 'rtotal' }, `${pts(r.total)}점`)),
+      el('div', { class: 'rsub' },
+        `기본 ${pts(r.basicScore)} · 디테일 ${pts(r.detailScore)} · 정밀도 ${pts(r.fidelityScore ?? 0)}`
+        + (tied(r) ? ' · 공동 순위' : '')),
       prompt,
       el('ul', { class: 'ritems' }, ...items),
       ...(frame ? [frame] : []));

@@ -1,8 +1,8 @@
 import type { LLMProvider, SystemConstraints } from './provider.ts';
 import type { GeneratedCode, GradeResult } from '../game/types.ts';
 import type { Criterion } from '../db/index.ts';
-import { buildGradePrompt } from './sanitize.ts';
-import { extractJson } from './extract.ts';
+import { buildGradePrompt, GRADE_SYSTEM_PROMPT } from './sanitize.ts';
+import { extractJson, parseGradeResult } from './extract.ts';
 
 type Opts = { apiKey: string; model: string; fetchImpl?: typeof fetch };
 
@@ -34,15 +34,10 @@ export class ClaudeProvider implements LLMProvider {
     return { html: String(obj.html ?? ''), css: String(obj.css ?? ''), js: String(obj.js ?? '') };
   }
 
-  async grade(code: GeneratedCode, criteria: Criterion[]): Promise<GradeResult> {
-    const text = await this.call(
-      'You are a lenient, generous UI grader. Respond only with the requested JSON.',
-      buildGradePrompt(code, criteria));
-    const obj = extractJson(text);
-    if (!Array.isArray(obj.items)) throw new Error('bad grade shape');
-    return { items: obj.items.map((it: any) => ({
-      id: Number(it.id), passed: Boolean(it.passed),
-      rate: Number(it.rate ?? (it.passed ? 1 : 0)), reason: String(it.reason ?? ''),
-    })) };
+  async grade(code: GeneratedCode, criteria: Criterion[], reference?: GeneratedCode): Promise<GradeResult> {
+    // No temperature here: current Claude models reject sampling parameters.
+    // Consistency comes from the anchored rubric in buildGradePrompt instead.
+    const text = await this.call(GRADE_SYSTEM_PROMPT, buildGradePrompt(code, criteria, reference));
+    return parseGradeResult(text);
   }
 }

@@ -69,10 +69,17 @@ export function attachWs(server: http.Server, opts: {
       const problem = getProblem(db, room.problemId);
       if (!problem) throw new Error(`problem ${room.problemId} not found for room ${code}`);
       const criteria = listCriteria(db, problem.id);
+      // Grade against what the room actually saw: a drawn variation replaces
+      // the base target for this round.
+      const variation = room.activeVariationId != null
+        ? getVariation(db, room.activeVariationId) : undefined;
+      const reference = variation
+        ? { html: variation.targetHtml, css: variation.targetCss, js: variation.targetJs }
+        : undefined;
       const subs = [...room.players.values()].map(p => ({ username: p.username, prompt: p.prompt }));
       genStore.clearRoom(code);
       const results = await gradeRoom({
-        provider, problem, criteria, submissions: subs,
+        provider, problem, criteria, submissions: subs, reference,
         onProgress: (done, total) => hub.broadcast(code, { type: 'GRADING_PROGRESS', done, total }),
         storeCode: (genCode) => genStore.put(genCode, code),
       });

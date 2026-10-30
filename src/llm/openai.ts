@@ -1,8 +1,8 @@
 import type { LLMProvider, SystemConstraints } from './provider.ts';
 import type { GeneratedCode, GradeResult } from '../game/types.ts';
 import type { Criterion } from '../db/index.ts';
-import { buildGradePrompt } from './sanitize.ts';
-import { extractJson } from './extract.ts';
+import { buildGradePrompt, GRADE_SYSTEM_PROMPT } from './sanitize.ts';
+import { extractJson, parseGradeResult } from './extract.ts';
 
 type Opts = { apiKey: string; model: string; fetchImpl?: typeof fetch };
 
@@ -17,7 +17,9 @@ export class OpenAIProvider implements LLMProvider {
   private f: typeof fetch;
   constructor(private opts: Opts) { this.f = opts.fetchImpl ?? fetch; }
 
-  private async call(system: string, user: string): Promise<string> {
+  private async call(
+    system: string, user: string, sampling: { temperature?: number; seed?: number } = {},
+  ): Promise<string> {
     const res = await this.f('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -25,7 +27,7 @@ export class OpenAIProvider implements LLMProvider {
         'authorization': `Bearer ${this.opts.apiKey}`,
       },
       body: JSON.stringify({
-        model: this.opts.model, max_tokens: 4096,
+        model: this.opts.model, max_tokens: 4096, ...sampling,
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: system },
@@ -44,15 +46,11 @@ export class OpenAIProvider implements LLMProvider {
     return { html: String(obj.html ?? ''), css: String(obj.css ?? ''), js: String(obj.js ?? '') };
   }
 
-  async grade(code: GeneratedCode, criteria: Criterion[]): Promise<GradeResult> {
-    const text = await this.call(
-      'You are a lenient, generous UI grader. Respond only with the requested JSON.',
-      buildGradePrompt(code, criteria));
-    const obj = extractJson(text);
-    if (!Array.isArray(obj.items)) throw new Error('bad grade shape');
-    return { items: obj.items.map((it: any) => ({
-      id: Number(it.id), passed: Boolean(it.passed),
-      rate: Number(it.rate ?? (it.passed ? 1 : 0)), reason: String(it.reason ?? ''),
-    })) };
+  async grade(code: GeneratedCode, criteria: Criterion[], reference?: GeneratedCode): Promise<GradeResult> {
+    // temperature 0 + fixed seed: the same code must get the same verdict, so
+    // a re-grade (or two identical submissions) can't swap places by chance.
+    const text = await this.call(GRADE_SYSTEM_PROMPT,
+      buildGradePrompt(code, criteria, reference), { temperature: 0, seed: 7 });
+    return parseGradeResult(text);
   }
 }
