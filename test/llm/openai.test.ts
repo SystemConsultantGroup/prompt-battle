@@ -103,11 +103,31 @@ for (const model of ['gpt-5-nano', 'gpt-4o-mini']) {
     const body = JSON.parse(String(capturedInit?.body));
     assert.deepEqual(body, {
       model, max_output_tokens: 16384, store: false,
-      instructions: 'Return JSON', input: [{ role: 'user', content: 'build request' }],
+      instructions: 'Return JSON', input: [
+        { role: 'developer', content: 'Respond only with a JSON object.' },
+        { role: 'user', content: 'build request' },
+      ],
       text: { format: { type: 'json_object' } },
     });
   });
 }
+
+test('JSON mode includes a JSON instruction in input even when neither prompt mentions JSON', async () => {
+  const user = '<user_prompt>make a blue button</user_prompt>';
+  const system = 'Generate a web UI.';
+  const fetchImpl: typeof fetch = async (_url, init) => {
+    const body = JSON.parse(String(init?.body));
+    assert.equal(body.text.format.type, 'json_object');
+    assert.equal(body.instructions, system);
+    assert.ok(body.input.some((message: any) =>
+      message.role === 'developer' && /json/i.test(message.content)));
+    assert.deepEqual(body.input.find((message: any) => message.role === 'user'),
+      { role: 'user', content: user });
+    return stubFetch(JSON.stringify(code))('https://unused.test');
+  };
+  const p = new OpenAIProvider({ apiKey: 'k', model: 'gpt-5-nano', fetchImpl });
+  assert.deepEqual(await p.implement(user, { systemPrompt: system }), code);
+});
 
 test('grade accepts a rubric level without unsupported sampling parameters', async () => {
   let body: any;
@@ -122,7 +142,7 @@ test('grade accepts a rubric level without unsupported sampling parameters', asy
   assert.equal(g.items[0].reason, 'gen 4px vs ref 8px');
   assert.equal(body.temperature, undefined);
   assert.equal(body.seed, undefined);
-  assert.match(body.input[0].content, /<b>ref<\/b>/);
+  assert.match(body.input.find((message: any) => message.role === 'user').content, /<b>ref<\/b>/);
   assert.match(body.instructions, /grading judge/);
 });
 

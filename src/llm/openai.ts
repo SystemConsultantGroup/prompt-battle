@@ -27,7 +27,11 @@ export class OpenAIProvider implements LLMProvider {
         max_output_tokens: 16384,
         store: false,
         instructions: system,
-        input: [{ role: 'user', content: user }],
+        // JSON mode validates input messages, not just top-level instructions.
+        input: [
+          { role: 'developer', content: 'Respond only with a JSON object.' },
+          { role: 'user', content: user },
+        ],
         text: { format: { type: 'json_object' } },
       }),
     });
