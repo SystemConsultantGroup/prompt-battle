@@ -36,7 +36,7 @@ ADMIN_PASSWORD=change-me         # 관리자 콘솔 + 호스트 진입 비밀번
 
 # LLM 프로바이더 — 한쪽 키만 넣으세요. 우선순위: OpenAI → Anthropic → FakeProvider
 OPENAI_API_KEY=sk-...            # OpenAI 키 (sk-... / sk-proj-...)
-OPENAI_MODEL=gpt-4o-mini        # 사용할 OpenAI 모델 (기본: 저렴한 gpt-4o-mini)
+OPENAI_MODEL=gpt-5-nano         # 사용할 Responses API 모델 (기본: gpt-5-nano)
 # ANTHROPIC_API_KEY=sk-ant-...  # Anthropic 키 (sk-ant-...)
 # CLAUDE_MODEL=claude-opus-4-8
 ```
@@ -46,13 +46,17 @@ OPENAI_MODEL=gpt-4o-mini        # 사용할 OpenAI 모델 (기본: 저렴한 gpt
 | `PORT` | 아니오 (기본 3000) | HTTP/WS 포트 |
 | `ADMIN_PASSWORD` | 권장 (기본 `change-me`) | 관리자 API와 호스트 인증에 공용. **실제 운영 시 반드시 변경** |
 | `OPENAI_API_KEY` | 택1 | OpenAI 구현/채점. 설정 시 **최우선** 사용 (`sk-...`) |
-| `OPENAI_MODEL` | 아니오 (기본 `gpt-4o-mini`) | OpenAI 모델. `max_tokens` 지원 Chat 모델만 (o1/o3 불가) |
+| `OPENAI_MODEL` | 아니오 (기본 `gpt-5-nano`) | Responses API 및 JSON 모드 지원 모델 (예: `gpt-5-nano`, `gpt-4o-mini`) |
 | `ANTHROPIC_API_KEY` | 택1 | Anthropic(Claude) 구현/채점 (`sk-ant-...`) |
 | `CLAUDE_MODEL` | 아니오 (기본 `claude-opus-4-8`) | Claude 모델 |
 | `DB_PATH` | 아니오 (기본 `data/app.sqlite`) | SQLite 파일 경로 |
 
-> **프로바이더 선택**: 서버는 `OPENAI_API_KEY`가 있으면 **OpenAI**, 없고 `ANTHROPIC_API_KEY`가 있으면 **Claude**, 둘 다 없으면 **FakeProvider**(오프라인·가짜 결과)를 씁니다. 시작 시 `LLM provider: OpenAI (model gpt-4o)` 처럼 어떤 프로바이더를 쓰는지 로그에 찍힙니다.
+> **프로바이더 선택**: 서버는 `OPENAI_API_KEY`가 있으면 **OpenAI**, 없고 `ANTHROPIC_API_KEY`가 있으면 **Claude**, 둘 다 없으면 **FakeProvider**(오프라인·가짜 결과)를 씁니다. 시작 시 `LLM provider: OpenAI (model gpt-5-nano)` 처럼 어떤 프로바이더를 쓰는지 로그에 찍힙니다.
 >
+> **OpenAI API**: `/v1/responses`에 `instructions`·`input`·`text.format: { type: "json_object" }`를 보내며, 각 구현/채점 요청은 `store: false`로 독립 실행합니다. `max_output_tokens: 16384`는 추론 토큰과 최종 JSON을 합친 상한입니다. 잘린 응답·거절·빈 출력은 오류로 처리합니다. 기존 `.env`에 `OPENAI_MODEL=gpt-4o-mini`가 있으면 기본값보다 우선하므로, `gpt-5-nano`로 직접 바꿔주세요.
+>
+> 공식 문서: [Responses 전환 가이드](https://developers.openai.com/api/docs/guides/migrate-to-responses), [JSON 모드](https://developers.openai.com/api/docs/guides/structured-outputs#json-mode), [GPT-5 nano](https://developers.openai.com/api/docs/models/gpt-5-nano). 모델 가용성과 폐기 일정은 적용 시 공식 모델 페이지에서 확인하세요.
+
 > **키 형식 주의**: OpenAI 키는 `sk-...`/`sk-proj-...`, Anthropic 키는 `sk-ant-...` 입니다. 서로 다른 슬롯에 넣으면 인증 실패(401)합니다. 키 없이 흐름만 보려면 두 키를 모두 비우면 됩니다.
 
 ## 4. 문제 시드

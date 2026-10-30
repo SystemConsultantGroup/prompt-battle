@@ -7,37 +7,57 @@ import { extractJson, parseGradeResult } from './extract.ts';
 type Opts = { apiKey: string; model: string; fetchImpl?: typeof fetch };
 
 /**
- * OpenAI-backed provider (Chat Completions API). Shares the prompt-building
- * and JSON-extraction logic with ClaudeProvider; the only differences are the
- * endpoint, Bearer auth, and the choices[].message.content response shape.
- * Requests JSON mode (`response_format: json_object`) so the response is valid
- * JSON — the prompts already contain the word "JSON", which that mode requires.
+ * Stateless Responses API provider. Prompts and JSON parsing are shared with
+ * ClaudeProvider. JSON mode uses text.format; prompts must mention "JSON".
  */
 export class OpenAIProvider implements LLMProvider {
   private f: typeof fetch;
   constructor(private opts: Opts) { this.f = opts.fetchImpl ?? fetch; }
 
-  private async call(
-    system: string, user: string, sampling: { temperature?: number; seed?: number } = {},
-  ): Promise<string> {
-    const res = await this.f('https://api.openai.com/v1/chat/completions', {
+  private async call(system: string, user: string): Promise<string> {
+    const res = await this.f('https://api.openai.com/v1/responses', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         'authorization': `Bearer ${this.opts.apiKey}`,
       },
       body: JSON.stringify({
-        model: this.opts.model, max_tokens: 4096, ...sampling,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
+        model: this.opts.model,
+        // Includes reasoning tokens as well as the visible JSON output.
+        max_output_tokens: 16384,
+        store: false,
+        instructions: system,
+        input: [{ role: 'user', content: user }],
+        text: { format: { type: 'json_object' } },
       }),
     });
     if (!res.ok) throw new Error(`openai ${res.status}`);
-    const data = await res.json() as { choices?: { message?: { content?: string } }[] };
-    return data.choices?.[0]?.message?.content ?? '';
+    const data = await res.json() as {
+      status?: string;
+      incomplete_details?: { reason?: string };
+      error?: { code?: string };
+      output?: {
+        type: string;
+        role?: string;
+        content?: { type: string; text?: string }[];
+      }[];
+    };
+    if (data.status !== 'completed') {
+      throw new Error(`openai response ${data.status ?? 'invalid'}: ${
+        data.incomplete_details?.reason ?? data.error?.code ?? 'not completed'}`);
+    }
+    // Raw REST responses have no SDK output_text helper. Reasoning/tool items
+    // may precede the assistant message, so never assume output[0] is text.
+    const content = (data.output ?? [])
+      .filter(item => item.type === 'message' && item.role === 'assistant')
+      .flatMap(item => item.content ?? []);
+    if (content.some(part => part.type === 'refusal')) {
+      throw new Error('openai response refused');
+    }
+    const text = content.filter(part => part.type === 'output_text')
+      .map(part => part.text ?? '').join('');
+    if (!text.trim()) throw new Error('openai response missing output text');
+    return text;
   }
 
   async implement(userPrompt: string, c: SystemConstraints): Promise<GeneratedCode> {
@@ -47,10 +67,10 @@ export class OpenAIProvider implements LLMProvider {
   }
 
   async grade(code: GeneratedCode, criteria: Criterion[], reference?: GeneratedCode): Promise<GradeResult> {
-    // temperature 0 + fixed seed: the same code must get the same verdict, so
-    // a re-grade (or two identical submissions) can't swap places by chance.
+    // Responses has no seed parameter; GPT-5 nano also rejects temperature.
+    // Consistency relies on the anchored rubric, not deterministic sampling.
     const text = await this.call(GRADE_SYSTEM_PROMPT,
-      buildGradePrompt(code, criteria, reference), { temperature: 0, seed: 7 });
+      buildGradePrompt(code, criteria, reference));
     return parseGradeResult(text);
   }
 }
